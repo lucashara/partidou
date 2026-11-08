@@ -9,6 +9,7 @@ logs/
 *.db-shm
 *.log
 e2e-capturas/
+.local/
 test-results/
 playwright-report/
 .DS_Store
