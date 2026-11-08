@@ -2,7 +2,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { ALFABETO_CROCKFORD, formatarCodigo, normalizarCodigo } from '../../compartilhado/codigos.js';
 
-export const TAMANHOS = { convite: 12, transferencia: 8, chaveRecuperacao: 25 };
+export const TAMANHOS = { convite: 12, transferencia: 8 };
 
 export const hashDe = (/** @type {string} */ texto) => createHash('sha256').update(texto).digest('hex');
 export const gerarToken = () => randomBytes(32).toString('base64url');

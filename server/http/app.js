@@ -13,7 +13,7 @@ import { rotasResenhas } from './rotas/resenhas.js';
 
 /** @typedef {{ rota: string | null, ip: string | null }} DadosLog */
 
-const CODIGOS_DE_FALHA = new Set(['CONVITE_INVALIDO', 'CODIGO_INVALIDO', 'CHAVE_INVALIDA']);
+const CODIGOS_DE_FALHA = new Set(['CONVITE_INVALIDO', 'CODIGO_INVALIDO']);
 const METODOS_COM_ESCRITA = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 const STATUS_DE_SEGURANCA = new Set([401, 403, 429]);
 

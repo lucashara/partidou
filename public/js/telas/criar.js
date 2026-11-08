@@ -1,10 +1,9 @@
-// Criar resenha: nome e apelido; em seguida, convite e chave de recuperação exibidos uma única vez.
+// Criar resenha: nome e apelido; em seguida, o link de convite para compartilhar.
 
 import { formatarCodigo } from '../../../compartilhado/codigos.js';
 import { LIMITES } from '../../../compartilhado/nomes.js';
 import { blocoSegredo } from '../componentes/bloco-segredo.js';
 import { criarCampo } from '../componentes/campo.js';
-import { confirmacaoChave } from '../componentes/confirmacao-chave.js';
 import { desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
 import { mensagemDeErro } from '../erros.js';
@@ -62,7 +61,7 @@ export function telaCriar(raiz) {
   trocarFilhos(raiz, formulario);
   nome.entrada.focus();
 
-  function concluir({ resenhaId, chaveRecuperacao, convite }) {
+  function concluir({ resenhaId, convite }) {
     desenharTopo({ titulo: 'Resenha criada' });
     const link = `${location.origin}/#/c/${formatarCodigo(convite.codigo)}`;
     trocarFilhos(
@@ -78,14 +77,15 @@ export function telaCriar(raiz) {
           apoio: 'Válido por 7 dias. Quem abrir o link escolhe um apelido e entra.',
           compartilhavel: { title: 'Convite para a resenha', text: 'Convite para a resenha no Partidou.', url: link },
         }),
-        blocoSegredo({
-          rotulo: 'Chave de recuperação',
-          valor: chaveRecuperacao,
-          exibicao: formatarCodigo(chaveRecuperacao, 5),
-          apoio:
-            'Exibida somente agora. Sem ela, o acesso do criador não pode ser recuperado se este aparelho for perdido.',
-        }),
-        confirmacaoChave({ aoAbrir: () => substituir(caminhoResenha(resenhaId)) }),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn btn-primario btn-grande btn-bloco',
+            onClick: () => substituir(caminhoResenha(resenhaId)),
+          },
+          'Abrir resenha',
+        ),
       ),
     );
     scrollTo(0, 0);

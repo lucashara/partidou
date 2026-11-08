@@ -95,4 +95,17 @@ export const MIGRACOES = [
   UPDATE partidas SET modalidade = 'futebol', seq = (SELECT seq FROM resenhas WHERE id = partidas.resenha_id)
     WHERE modalidade = 'fifa';
   `,
+  // O acesso passa a ser só por convite e código de transferência: a chave de recuperação sai do esquema.
+  // A coluna é UNIQUE, então o SQLite exige recriar a tabela (com as chaves estrangeiras desligadas pelo executor).
+  `
+  CREATE TABLE resenhas_nova (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL CHECK (length(nome) BETWEEN 1 AND 40),
+    seq INTEGER NOT NULL DEFAULT 0,
+    criada_em INTEGER NOT NULL
+  ) STRICT;
+  INSERT INTO resenhas_nova (id, nome, seq, criada_em) SELECT id, nome, seq, criada_em FROM resenhas;
+  DROP TABLE resenhas;
+  ALTER TABLE resenhas_nova RENAME TO resenhas;
+  `,
 ];

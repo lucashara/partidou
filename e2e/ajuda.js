@@ -17,7 +17,6 @@ export async function criarResenha(page, nome = 'Resenha de Domingo', apelido = 
   await page.getByRole('button', { name: 'Criar resenha' }).click();
   const exibicao = await page.locator('.codigo-bloco').first().textContent();
   const convite = `${new URL(page.url()).origin}/${exibicao.slice(exibicao.indexOf('#'))}`;
-  await page.getByLabel('Chave guardada').check();
   await page.getByRole('button', { name: 'Abrir resenha' }).click();
   await expect(page.getByRole('combobox', { name: 'Nome do Lado A' })).toBeVisible();
   return convite;

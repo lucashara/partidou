@@ -84,9 +84,8 @@ export function criarEventos(opcoes = {}) {
       for (const c of porResenha.get(resenhaId) ?? []) c.res.write(`event: seq\ndata: ${seq}\n\n`);
     },
 
-    /** Derruba as conexões do membro, exceto as da sessão indicada. */
-    revogarMembro: (/** @type {string} */ membroId, exceto = '') =>
-      derrubarSe((c) => c.membroId === membroId && c.sessaoHash !== exceto),
+    /** Derruba as conexões do membro. */
+    revogarMembro: (/** @type {string} */ membroId) => derrubarSe((c) => c.membroId === membroId),
     revogarSessao: (/** @type {string} */ sessaoHash) => derrubarSe((c) => c.sessaoHash === sessaoHash),
     revogarResenha: (/** @type {string} */ resenhaId) => derrubarSe((c) => c.resenhaId === resenhaId),
 

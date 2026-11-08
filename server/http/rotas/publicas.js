@@ -1,4 +1,4 @@
-import { recuperar, usarTransferencia } from '../../nucleo/acesso.js';
+import { usarTransferencia } from '../../nucleo/acesso.js';
 import { aceitarConvite, consultarConvite } from '../../nucleo/convites.js';
 import { criarResenha, validarNovaResenha } from '../../nucleo/resenhas.js';
 import { muitasTentativas } from '../respostas.js';
@@ -25,12 +25,6 @@ export function rotasPublicas() {
       const { seq, ...resposta } = aceitarConvite(ctx, codigo, apelido);
       ctx.eventos.publicar(resposta.resenha.id, seq);
       return { status: 201, corpo: resposta };
-    }),
-
-    rota('POST', '/api/acesso/recuperar', { publica: true, porCodigo: true }, ({ ctx, corpo }) => {
-      const { sessaoNova, ...resposta } = recuperar(ctx, textoDoCorpo(corpo, 'chave'));
-      ctx.eventos.revogarMembro(resposta.membro.id, sessaoNova);
-      return { status: 200, corpo: resposta };
     }),
 
     rota('POST', '/api/acesso/transferencia/usar', { publica: true, porCodigo: true }, ({ ctx, corpo }) => ({

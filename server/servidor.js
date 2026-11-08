@@ -35,6 +35,8 @@ export function criarServidor(config, opcoes = {}) {
   const faxina = criarFaxina(ctx);
   const http = createServer(criarApp(ctx));
   http.keepAliveTimeout = 65_000;
+  http.headersTimeout = 15_000;
+  http.requestTimeout = 30_000;
 
   return {
     ctx,

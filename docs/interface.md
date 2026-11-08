@@ -7,12 +7,12 @@ Mobile primeiro, com coluna única de até 640 px centralizada no desktop. A lin
 | Tela | Conteúdo |
 |---|---|
 | Início | Lista das resenhas do aparelho, Criar resenha e Entrar em resenha. Sem resenhas, Criar resenha é a ação em destaque |
-| Criar resenha | Nome e apelido. Em seguida, o link de convite e a chave de recuperação, mostrados uma única vez, e a confirmação "Chave guardada" para abrir a resenha |
-| Entrar em resenha | Convite recebido por link ou digitado, depois o apelido. Também oferece recuperar acesso com a chave e usar código de transferência |
+| Criar resenha | Nome e apelido. Em seguida, o link de convite para compartilhar e o botão Abrir resenha |
+| Entrar em resenha | Convite recebido por link ou digitado, depois o apelido. Também oferece o código de transferência, gerado em Ajustes de outro aparelho |
 | Placar | Dois lados com nome livre e sugestões dos nomes já usados, placar em botões e digitação direta, pênaltis quando há empate, modalidade opcional e Lançar partida. Abaixo, as últimas partidas |
 | Histórico | Partidas por dia, da mais recente para a mais antiga. Tocar numa partida abre a edição, com autoria, Salvar e Excluir |
 | Geral | Classificação por vitórias e saldo de gols, maior diferença, confrontos e o cartão de resumo para compartilhar |
-| Ajustes | Nome da resenha, convite, participantes, código de transferência, chave de recuperação, remoção do aparelho e exclusão da resenha |
+| Ajustes | Nome da resenha, convite, participantes, código de transferência, remoção do aparelho e exclusão da resenha |
 
 A primeira visita abre uma apresentação curta; o botão `?` do cabeçalho a reabre.
 

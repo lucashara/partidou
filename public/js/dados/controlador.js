@@ -194,10 +194,6 @@ export async function abrirControlador({ resenha: inicial, deps, esquecerLocal, 
       });
       await ressincronizar();
     },
-    async rotacionarChave() {
-      const r = await api('POST', `${base}/chave-recuperacao`);
-      return { chaveRecuperacao: r.chaveRecuperacao };
-    },
     async gerarTransferencia() {
       const r = await api('POST', '/api/acesso/transferencia');
       return { codigo: r.codigo, expiraEm: r.expiraEm };

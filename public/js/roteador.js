@@ -1,7 +1,7 @@
 // Roteador por fragmento (#/...). O fragmento nunca vai ao servidor, e o convite sai dele assim que lido.
 
 /**
- * @typedef {{ tela: 'inicio' } | { tela: 'criar' } | { tela: 'entrar', codigo?: string } | { tela: 'acesso', tipo: 'chave' | 'transferencia' } | { tela: 'resenha', id: string, aba: 'placar' | 'historico' | 'geral' | 'ajustes' }} Rota
+ * @typedef {{ tela: 'inicio' } | { tela: 'criar' } | { tela: 'entrar', codigo?: string } | { tela: 'acesso' } | { tela: 'resenha', id: string, aba: 'placar' | 'historico' | 'geral' | 'ajustes' }} Rota
  */
 
 const ABAS = ['historico', 'geral', 'ajustes'];
@@ -23,7 +23,7 @@ export function lerRota(hash = location.hash) {
   if (a === 'criar') return { tela: 'criar' };
   if (a === 'entrar') return { tela: 'entrar' };
   if (a === 'c' && b) return { tela: 'entrar', codigo: b };
-  if (a === 'acesso' && (b === 'chave' || b === 'transferencia')) return { tela: 'acesso', tipo: b };
+  if (a === 'acesso' && b === 'transferencia') return { tela: 'acesso' };
   if (a === 'r' && b) return { tela: 'resenha', id: b, aba: /** @type {any} */ (ABAS.includes(c) ? c : 'placar') };
   return { tela: 'inicio' };
 }

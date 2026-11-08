@@ -19,12 +19,15 @@ export function normalizarNome(texto) {
     .trim();
 }
 
+// Invisíveis que o nome aceita (ZWJ de emoji, preenchimentos): não distinguem dois nomes na comparação.
+const INVISIVEIS_NA_CHAVE = /[\u200D\u115F\u1160\u17B4\u17B5\u2800\u3164\uFFA0]/gu;
+
 /**
- * Chave de comparação: sem acento, sem caixa. Dois nomes com a mesma chave são o mesmo nome.
+ * Chave de comparação: sem acento, sem caixa e sem invisíveis. Dois nomes com a mesma chave são o mesmo nome.
  * @param {unknown} texto
  */
 export function chaveDeNome(texto) {
-  return normalizarNome(texto).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  return normalizarNome(texto).normalize('NFD').replace(/\p{M}/gu, '').replace(INVISIVEIS_NA_CHAVE, '').toLowerCase();
 }
 
 /**

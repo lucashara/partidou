@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
   ALFABETO_CROCKFORD,
-  chaveRecuperacaoValida,
   codigoConviteValido,
   codigoTransferenciaValido,
   formatarCodigo,
@@ -48,12 +47,5 @@ describe('codigos', () => {
     assert.equal(codigoTransferenciaValido('abcd-efgh'), true);
     assert.equal(codigoTransferenciaValido('abcd-efg'), false);
     assert.equal(codigoTransferenciaValido('ABCD-EFGH-JKMN'), false);
-  });
-
-  test('chaveRecuperacaoValida exige 25 símbolos', () => {
-    assert.equal(chaveRecuperacaoValida('ABCDE-FGHJK-MNPQR-STVWX-YZ012'), true);
-    assert.equal(chaveRecuperacaoValida('abcdefghjkmnpqrstvwxyz012'), true);
-    assert.equal(chaveRecuperacaoValida('ABCDE-FGHJK-MNPQR-STVWX-YZ01'), false);
-    assert.equal(chaveRecuperacaoValida('ABCDE-FGHJK-MNPQR-STVWX-YZ01U'), false);
   });
 });

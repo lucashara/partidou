@@ -1,4 +1,3 @@
-import { rotacionarChave } from '../../nucleo/acesso.js';
 import { gerarConvite, revogarConvite } from '../../nucleo/convites.js';
 import { obterEstado, seqDaResenha } from '../../nucleo/estado.js';
 import { excluirResenha, renomearResenha } from '../../nucleo/resenhas.js';
@@ -38,10 +37,5 @@ export function rotasResenhas() {
       revogarConvite(ctx, auth);
       return { status: 204 };
     }),
-
-    rota('POST', '/api/resenhas/:id/chave-recuperacao', {}, ({ ctx, auth }) => ({
-      status: 200,
-      corpo: rotacionarChave(ctx, auth),
-    })),
   ];
 }

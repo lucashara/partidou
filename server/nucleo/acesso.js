@@ -1,14 +1,14 @@
-// Sessões, recuperação do criador e transferência de acesso entre aparelhos.
-import { chaveRecuperacaoValida, codigoTransferenciaValido } from '../../compartilhado/codigos.js';
+// Sessões e transferência de acesso entre aparelhos.
+import { codigoTransferenciaValido } from '../../compartilhado/codigos.js';
 import { ErroApp } from '../erros.js';
 import { paraMembro, paraResenha } from './modelos.js';
-import { exigirCriador } from './permissoes.js';
 import { gerarToken, hashDe, hashDeCodigo, novoSegredo, TAMANHOS } from './tokens.js';
 
 const DIA_MS = 24 * 3600_000;
 export const SESSAO_VALIDADE_MS = 180 * DIA_MS;
 const ATUALIZAR_USO_MS = 3600_000;
 const TRANSFERENCIA_VALIDADE_MS = 10 * 60_000;
+export const MAX_SESSOES_POR_MEMBRO = 10;
 const FORMATO_TOKEN = /^[A-Za-z0-9_-]{20,64}$/;
 
 /**
@@ -20,7 +20,6 @@ const FORMATO_TOKEN = /^[A-Za-z0-9_-]{20,64}$/;
  * @property {'criador' | 'participante'} papel
  */
 
-export const chaveInvalida = () => new ErroApp(404, 'CHAVE_INVALIDA', 'Chave de recuperação inválida.');
 export const codigoInvalido = () => new ErroApp(404, 'CODIGO_INVALIDO', 'Código inválido ou expirado.');
 
 /**
@@ -37,6 +36,14 @@ export function criarSessao(banco, membroId, agora) {
     membroId,
     agora,
     agora,
+  );
+  // Teto por membro: sem ele, gerar e usar códigos em laço criaria sessões sem limite.
+  banco.executar(
+    `DELETE FROM sessoes WHERE membro_id = ? AND token_hash NOT IN (
+       SELECT token_hash FROM sessoes WHERE membro_id = ? ORDER BY ultimo_uso_em DESC, criada_em DESC, rowid DESC LIMIT ?)`,
+    membroId,
+    membroId,
+    MAX_SESSOES_POR_MEMBRO,
   );
   return token;
 }
@@ -66,25 +73,13 @@ export function autenticar(banco, token, agora) {
 }
 
 /**
- * Revoga as sessões ativas do membro, preservando `exceto`. Devolve os hashes revogados.
+ * Revoga as sessões ativas do membro.
  * @param {import("../tipos.js").Banco} banco
  * @param {string} membroId
  * @param {number} agora
- * @param {string} [exceto]
  */
-export function revogarSessoesDoMembro(banco, membroId, agora, exceto = '') {
-  const alvo = banco.todos(
-    'SELECT token_hash FROM sessoes WHERE membro_id = ? AND revogada_em IS NULL AND token_hash <> ?',
-    membroId,
-    exceto,
-  );
-  banco.executar(
-    'UPDATE sessoes SET revogada_em = ? WHERE membro_id = ? AND revogada_em IS NULL AND token_hash <> ?',
-    agora,
-    membroId,
-    exceto,
-  );
-  return alvo.map((l) => l.token_hash);
+export function revogarSessoesDoMembro(banco, membroId, agora) {
+  banco.executar('UPDATE sessoes SET revogada_em = ? WHERE membro_id = ? AND revogada_em IS NULL', agora, membroId);
 }
 
 /**
@@ -94,51 +89,6 @@ export function revogarSessoesDoMembro(banco, membroId, agora, exceto = '') {
  */
 export function encerrarSessao(ctx, auth) {
   ctx.banco.executar('UPDATE sessoes SET revogada_em = ? WHERE token_hash = ?', ctx.relogio(), auth.sessaoHash);
-}
-
-/**
- * A chave de recuperação devolve a sessão do criador, derruba as outras e é trocada por uma nova.
- * @param {import("../tipos.js").Contexto} ctx
- * @param {unknown} chaveTexto
- */
-export function recuperar(ctx, chaveTexto) {
-  if (!chaveRecuperacaoValida(chaveTexto)) throw chaveInvalida();
-  const { banco } = ctx;
-  return banco.transacao(() => {
-    const agora = ctx.relogio();
-    const resenha = banco.um('SELECT * FROM resenhas WHERE chave_recuperacao_hash = ?', hashDeCodigo(chaveTexto));
-    if (!resenha) throw chaveInvalida();
-    const criador = banco.um(
-      "SELECT * FROM membros WHERE resenha_id = ? AND papel = 'criador' AND revogado_em IS NULL",
-      resenha.id,
-    );
-    if (!criador) throw chaveInvalida();
-    revogarSessoesDoMembro(banco, criador.id, agora);
-    // Código de transferência emitido antes da recuperação não pode abrir sessão nova depois dela.
-    banco.executar('DELETE FROM transferencias WHERE membro_id = ?', criador.id);
-    const token = criarSessao(banco, criador.id, agora);
-    const chave = novoSegredo(TAMANHOS.chaveRecuperacao, 5);
-    banco.executar('UPDATE resenhas SET chave_recuperacao_hash = ? WHERE id = ?', chave.hash, resenha.id);
-    return {
-      resenha: paraResenha(resenha),
-      membro: paraMembro(criador),
-      token,
-      chaveRecuperacao: chave.exibido,
-      sessaoNova: hashDe(token),
-    };
-  });
-}
-
-/**
- * Troca a chave de recuperação do criador; a anterior deixa de valer.
- * @param {import("../tipos.js").Contexto} ctx
- * @param {import("../tipos.js").Autenticacao} auth
- */
-export function rotacionarChave(ctx, auth) {
-  exigirCriador(auth);
-  const chave = novoSegredo(TAMANHOS.chaveRecuperacao, 5);
-  ctx.banco.executar('UPDATE resenhas SET chave_recuperacao_hash = ? WHERE id = ?', chave.hash, auth.resenhaId);
-  return { chaveRecuperacao: chave.exibido };
 }
 
 /**

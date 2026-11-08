@@ -26,6 +26,11 @@ describe('chaveDeNome', () => {
     assert.equal(chaveDeNome('joao da silva'), chaveDeNome('João Da  Silva'));
   });
 
+  test('ZWJ e preenchimentos não criam um nome diferente', () => {
+    assert.equal(chaveDeNome('Luc\u200Das'), chaveDeNome('Lucas'));
+    assert.equal(chaveDeNome('A\u3164B'), chaveDeNome('AB'));
+  });
+
   test('forma composta e decomposta têm a mesma chave', () => {
     assert.equal(chaveDeNome('José'), chaveDeNome('José'));
   });

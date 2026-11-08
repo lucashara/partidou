@@ -42,10 +42,16 @@ function verificarArquivo(db) {
  * @param {number} atual versão do esquema no arquivo
  */
 function migrar(db, atual) {
+  // Recriar uma tabela pai com chaves estrangeiras ligadas apaga os filhos por cascata, e o pragma não vale
+  // dentro de transação. Por isso fica desligado só durante as migrações, com conferência antes do COMMIT.
+  db.exec('PRAGMA foreign_keys = OFF');
   for (let v = atual; v < MIGRACOES.length; v++) {
     db.exec('BEGIN IMMEDIATE');
     try {
       db.exec(MIGRACOES[v]);
+      if (db.prepare('PRAGMA foreign_key_check').all().length > 0) {
+        throw new Error(`A migração v${v + 1} deixou chaves estrangeiras inválidas.`);
+      }
       db.exec(`PRAGMA application_id = ${APPLICATION_ID}`);
       db.exec(`PRAGMA user_version = ${v + 1}`);
       db.exec('COMMIT');
@@ -66,10 +72,9 @@ export function abrirBanco(caminho) {
   const db = new DatabaseSync(caminho);
   try {
     const versao = verificarArquivo(db);
-    db.exec(
-      'PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;',
-    );
+    db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA busy_timeout = 5000;');
     migrar(db, versao);
+    db.exec('PRAGMA foreign_keys = ON');
   } catch (e) {
     db.close();
     throw e;

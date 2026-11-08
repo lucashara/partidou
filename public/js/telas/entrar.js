@@ -13,7 +13,6 @@ const outrasFormas = () =>
   h(
     'div',
     { class: 'secao' },
-    h('a', { class: 'btn btn-texto', href: '#/acesso/chave' }, 'Recuperar acesso com a chave'),
     h('a', { class: 'btn btn-texto', href: '#/acesso/transferencia' }, 'Usar código de transferência'),
   );
 

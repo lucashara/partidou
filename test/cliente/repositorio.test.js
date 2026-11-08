@@ -3,8 +3,6 @@ import { describe, test } from 'node:test';
 import { criarArmazenamentoMemoria, ErroArmazenamento } from '../../public/js/dados/armazenamento.js';
 import { assentar, criarAmbiente, partidaSimples } from './ajuda/ambiente.js';
 
-const CHAVE = 'ABCDE-FGHJK-MNPQR-STVWX-YZ012';
-
 /** @param {string} id @param {Record<string, any>} [extras] */
 const sessao = (id = 'resenha-nova-0000000001', extras = {}) => ({
   resenha: { id, nome: 'Racha de Sexta', seq: 3, criadaEm: 1 },
@@ -26,7 +24,7 @@ describe('armazenamento local indisponível', () => {
     const esperado = { name: 'ErroArmazenamento', mensagem: 'Armazenamento local indisponível neste navegador.' };
     await assert.rejects(repositorio.criarResenha({ nome: 'Racha', apelido: 'Lucas' }), esperado);
     await assert.rejects(repositorio.aceitarConvite('ABCD-EFGH-JKMN', 'Lucas'), esperado);
-    await assert.rejects(repositorio.recuperarAcesso(CHAVE), esperado);
+    await assert.rejects(repositorio.usarTransferencia('ABCD-EFGH'), esperado);
     assert.equal(ambiente.servidor.chamadas.length, 0);
   });
 });
@@ -37,12 +35,11 @@ describe('entrada na resenha', () => {
     const repositorio = ambiente.criarRepositorio();
     ambiente.servidor.programar(rota('/api/resenhas'), {
       status: 201,
-      corpo: sessao(undefined, { chaveRecuperacao: CHAVE, convite: { codigo: 'ABCD-EFGH-JKMN', expiraEm: 99 } }),
+      corpo: sessao(undefined, { convite: { codigo: 'ABCD-EFGH-JKMN', expiraEm: 99 } }),
     });
     const r = await repositorio.criarResenha({ nome: '  Racha  de Sexta ', apelido: 'Lucas' });
     assert.deepEqual(r, {
       resenhaId: 'resenha-nova-0000000001',
-      chaveRecuperacao: CHAVE,
       convite: { codigo: 'ABCD-EFGH-JKMN', expiraEm: 99 },
     });
     assert.deepEqual(ambiente.servidor.chamadas[0].corpo, { nome: 'Racha de Sexta', apelido: 'Lucas' });
@@ -145,25 +142,16 @@ describe('entrada na resenha', () => {
     assert.equal((await repositorio.listarResenhas()).length, 1);
   });
 
-  test('recuperarAcesso devolve a nova chave e usarTransferencia grava a sessão', async () => {
+  test('usarTransferencia grava a sessão', async () => {
     const ambiente = criarAmbiente();
     const repositorio = ambiente.criarRepositorio();
-    ambiente.servidor.programar(rota('/api/acesso/recuperar'), {
-      status: 200,
-      corpo: sessao('resenha-rec-00000000001', { chaveRecuperacao: CHAVE }),
-    });
-    const r = await repositorio.recuperarAcesso('abcde fghjk mnpqr stvwx yz012');
-    assert.deepEqual(r, { resenhaId: 'resenha-rec-00000000001', chaveRecuperacao: CHAVE });
-    assert.deepEqual(ambiente.servidor.chamadas[0].corpo, { chave: 'ABCDEFGHJKMNPQRSTVWXYZ012' });
-    await assert.rejects(repositorio.recuperarAcesso('curta'), { codigo: 'CHAVE_INVALIDA' });
-
     ambiente.servidor.programar(rota('/api/acesso/transferencia/usar'), {
       status: 200,
       corpo: sessao('resenha-tra-00000000001'),
     });
     assert.deepEqual(await repositorio.usarTransferencia('abcd-efgh'), { resenhaId: 'resenha-tra-00000000001' });
     await assert.rejects(repositorio.usarTransferencia('xx'), { codigo: 'CODIGO_INVALIDO' });
-    assert.equal((await repositorio.listarResenhas()).length, 2);
+    assert.equal((await repositorio.listarResenhas()).length, 1);
     assert.ok(await ambiente.armazenamento.lerEstado('resenha-tra-00000000001'));
   });
 
@@ -282,7 +270,7 @@ describe('administração', () => {
     const { controlador } = await abrir(ambiente);
     ambiente.servidor.programar(() => true, 'rede', 1000);
     await assert.rejects(controlador.admin.gerarConvite(), { name: 'ErroRede' });
-    await assert.rejects(controlador.admin.rotacionarChave(), { name: 'ErroRede' });
+    await assert.rejects(controlador.admin.gerarTransferencia(), { name: 'ErroRede' });
   });
 
   test('renomear valida o nome e ressincroniza depois do sucesso', async () => {

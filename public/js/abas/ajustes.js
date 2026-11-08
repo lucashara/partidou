@@ -18,8 +18,8 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
   /** @type {import('../dados/tipos.js').Visao} */
   let visao;
   let assinatura = '';
-  /** @type {{ convite: { codigo: string, expiraEm: number } | null, transferencia: { codigo: string, expiraEm: number } | null, chave: string | null }} */
-  const segredos = { convite: null, transferencia: null, chave: null };
+  /** @type {{ convite: { codigo: string, expiraEm: number } | null, transferencia: { codigo: string, expiraEm: number } | null }} */
+  const segredos = { convite: null, transferencia: null };
   const el = h('div', { class: 'tela' });
 
   const falha = (erro, padrao) => avisar({ texto: mensagemDeErro(erro, padrao), tom: 'erro' });
@@ -242,24 +242,6 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
     );
   }
 
-  async function gerarChave(alvo) {
-    const ok = await confirmar({
-      titulo: 'Gerar nova chave',
-      texto: 'A chave atual deixa de valer e as outras sessões do criador são encerradas.',
-      rotuloConfirmar: 'Gerar nova chave',
-    });
-    if (!ok) return;
-    await executar(
-      alvo,
-      'Gerando…',
-      async () => {
-        segredos.chave = (await controlador.admin.rotacionarChave()).chaveRecuperacao;
-        desenhar(true, 'chave');
-      },
-      'Falha ao gerar a chave.',
-    );
-  }
-
   function botaoDeSaida(rotulo, texto, acao, mensagem) {
     return botao(
       rotulo,
@@ -309,8 +291,8 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
     );
   }
 
-  function secaoAcesso(criador) {
-    const { transferencia, chave } = segredos;
+  function secaoAcesso() {
+    const { transferencia } = segredos;
     return secao(
       'Acesso',
       h(
@@ -319,10 +301,6 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
         linha('Código de transferência', 'Abre a resenha em outro navegador ou no app instalado. Vale 10 minutos.', [
           botao('Gerar', gerarTransferencia, '', 'Gerar código de transferência'),
         ]),
-        criador &&
-          linha('Chave de recuperação', 'Devolve o acesso do criador se o aparelho for perdido.', [
-            botao('Gerar nova', gerarChave, '', 'Gerar nova chave de recuperação'),
-          ]),
       ),
       transferencia &&
         blocoSegredo({
@@ -332,14 +310,6 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
           exibicao: formatarCodigo(transferencia.codigo),
           apoio: `Válido até ${hora(transferencia.expiraEm)}. Informar em Entrar em resenha, Código de transferência.`,
         }),
-      chave &&
-        blocoSegredo({
-          marca: 'chave',
-          rotulo: 'Chave de recuperação',
-          valor: chave,
-          exibicao: formatarCodigo(chave, 5),
-          apoio: 'Exibida somente agora. A chave anterior deixou de valer. Guardar em local seguro.',
-        }),
     );
   }
 
@@ -348,7 +318,9 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       'Saída',
       botaoDeSaida(
         'Remover do aparelho',
-        'A resenha deixa de aparecer neste aparelho. Para voltar será preciso um convite ou, para o criador, a chave de recuperação.',
+        criador
+          ? 'A resenha deixa de aparecer neste aparelho. Sem outro aparelho com acesso, a administração não pode ser recuperada: antes de remover, entrar em outro aparelho com um código de transferência.'
+          : 'A resenha deixa de aparecer neste aparelho. Para voltar, é preciso um código de transferência gerado em outro aparelho.',
         () => controlador.admin.sairDesteAparelho(),
         'Resenha removida deste aparelho.',
       ),
@@ -393,7 +365,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       secaoResenha(criador),
       criador && secaoConvite(),
       secaoParticipantes(criador),
-      secaoAcesso(criador),
+      secaoAcesso(),
       secaoSaida(criador),
       criador && secaoExclusao(),
       h('p', { class: 'rodape-app' }, 'Partidou · Jogou? Registrou.'),

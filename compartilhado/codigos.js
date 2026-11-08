@@ -2,7 +2,6 @@ export const ALFABETO_CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 const TAMANHO_CONVITE = 12;
 const TAMANHO_TRANSFERENCIA = 8;
-const TAMANHO_CHAVE_RECUPERACAO = 25;
 
 /**
  * Maiúsculas, sem espaço nem hífen, O vira 0 e I e L viram 1 (confusões previstas pelo alfabeto Crockford).
@@ -39,4 +38,3 @@ function valido(texto, tamanho) {
 
 export const codigoConviteValido = (/** @type {unknown} */ texto) => valido(texto, TAMANHO_CONVITE);
 export const codigoTransferenciaValido = (/** @type {unknown} */ texto) => valido(texto, TAMANHO_TRANSFERENCIA);
-export const chaveRecuperacaoValida = (/** @type {unknown} */ texto) => valido(texto, TAMANHO_CHAVE_RECUPERACAO);

@@ -37,7 +37,7 @@ A camada `http/` só traduz requisição em chamada ao `nucleo/` e erro em respo
 
 | Tabela | Conteúdo |
 |---|---|
-| `resenhas` | Nome, contador de mudanças (`seq`) e hash da chave de recuperação |
+| `resenhas` | Nome e contador de mudanças (`seq`) |
 | `membros` | Apelido, papel (`criador` ou `participante`), revogação. Um criador ativo por resenha |
 | `sessoes` | Hash do token de cada aparelho |
 | `convites`, `transferencias` | Hash dos códigos, validade e uso |
@@ -48,19 +48,17 @@ Toda mudança incrementa o `seq` da resenha. O aparelho guarda o último `seq` q
 
 ### API
 
-JSON sobre HTTP, em `/api`. Rotas públicas (criar resenha, consultar e aceitar convite, recuperar acesso, usar transferência) têm limites próprios; as demais exigem a sessão.
+JSON sobre HTTP, em `/api`. Rotas públicas (criar resenha, consultar e aceitar convite, usar transferência) têm limites próprios; as demais exigem a sessão.
 
 | Método e caminho | Função |
 |---|---|
-| `POST /api/resenhas` | Cria a resenha, o criador, o convite e a chave de recuperação |
+| `POST /api/resenhas` | Cria a resenha, o criador e o convite |
 | `POST /api/convites/consultar` · `aceitar` | Mostra a resenha de um convite e entra nela |
-| `POST /api/acesso/recuperar` | Abre acesso com a chave de recuperação |
 | `POST /api/acesso/transferencia` · `/usar` | Gera e usa o código de transferência entre aparelhos |
 | `GET /api/resenhas/:id/estado` | Estado completo da resenha, com `seq` |
 | `GET /api/resenhas/:id/eventos` | Fluxo SSE com avisos de que o `seq` mudou |
 | `PATCH` · `DELETE /api/resenhas/:id` | Renomeia e exclui a resenha (criador) |
 | `POST` · `DELETE /api/resenhas/:id/convite` | Gera e revoga o convite (criador) |
-| `POST /api/resenhas/:id/chave-recuperacao` | Gera nova chave (criador) |
 | `DELETE /api/resenhas/:id/membros/:mid` · `eu` | Remove participante; sai da resenha |
 | `POST /api/resenhas/:id/partidas` | Lança partida |
 | `PATCH` · `DELETE /api/resenhas/:id/partidas/:pid` · `POST .../restaurar` | Edita, exclui e restaura |

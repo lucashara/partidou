@@ -65,8 +65,8 @@ export async function iniciarServidor({ config = {}, opcoes = {}, limitesPadrao 
   async function criarResenha(nome = 'Resenha', apelido = 'Dono') {
     const r = await chamar('POST', '/api/resenhas', { corpo: { nome, apelido } });
     if (r.status !== 201) throw new Error(`Criação falhou: ${r.status} ${r.texto}`);
-    const { resenha, membro, token, chaveRecuperacao, convite } = r.corpo;
-    return { resenha, membro, token, chaveRecuperacao, convite, id: resenha.id };
+    const { resenha, membro, token, convite } = r.corpo;
+    return { resenha, membro, token, convite, id: resenha.id };
   }
 
   /** Aceita o convite e devolve o participante. */

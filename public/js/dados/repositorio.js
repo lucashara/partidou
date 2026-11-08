@@ -1,9 +1,4 @@
-import {
-  chaveRecuperacaoValida,
-  codigoConviteValido,
-  codigoTransferenciaValido,
-  normalizarCodigo,
-} from '../../../compartilhado/codigos.js';
+import { codigoConviteValido, codigoTransferenciaValido, normalizarCodigo } from '../../../compartilhado/codigos.js';
 import { LIMITES, validarNome } from '../../../compartilhado/nomes.js';
 import { chamar, ErroLocal } from './api.js';
 import { ErroArmazenamento } from './armazenamento.js';
@@ -27,7 +22,7 @@ function nomeValido(texto, maximo, campo) {
 }
 
 /**
- * Fachada usada pelas telas: resenhas deste aparelho, entrada por convite, chave ou transferência, e abertura de controladores.
+ * Fachada usada pelas telas: resenhas deste aparelho, entrada por convite ou transferência, e abertura de controladores.
  * @param {import('./tipos.js').Dependencias} dependencias
  */
 export function criarRepositorio(dependencias) {
@@ -114,7 +109,7 @@ export function criarRepositorio(dependencias) {
       await exigirArmazenamento();
       const resposta = await publica('/api/resenhas', dados);
       const resenhaId = await guardarSessao(resposta);
-      return { resenhaId, chaveRecuperacao: resposta.chaveRecuperacao, convite: resposta.convite };
+      return { resenhaId, convite: resposta.convite };
     },
 
     /** @param {string} codigo */
@@ -133,15 +128,6 @@ export function criarRepositorio(dependencias) {
       await exigirArmazenamento();
       const resposta = await publica('/api/convites/aceitar', dados);
       return { resenhaId: await guardarSessao(resposta) };
-    },
-
-    /** @param {string} chave */
-    async recuperarAcesso(chave) {
-      if (!chaveRecuperacaoValida(chave))
-        throw new ErroLocal('CHAVE_INVALIDA', 'Chave de recuperação inválida.', 'chave');
-      await exigirArmazenamento();
-      const resposta = await publica('/api/acesso/recuperar', { chave: normalizarCodigo(chave) });
-      return { resenhaId: await guardarSessao(resposta), chaveRecuperacao: resposta.chaveRecuperacao };
     },
 
     /** @param {string} codigo */

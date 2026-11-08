@@ -5,7 +5,7 @@ import { inserirConvite } from './convites.js';
 import { paraMembro, paraResenha } from './modelos.js';
 import { exigirCriador } from './permissoes.js';
 import { proximoSeq } from './seq.js';
-import { gerarIdMembro, gerarIdResenha, novoSegredo, TAMANHOS } from './tokens.js';
+import { gerarIdMembro, gerarIdResenha } from './tokens.js';
 import { nomeObrigatorio } from './validacao.js';
 
 const DIA_MS = 24 * 3600_000;
@@ -40,15 +40,8 @@ export function criarResenha(ctx, entrada) {
         'Limite de criação de resenhas atingido. Nova criação permitida mais tarde.',
       );
     }
-    const chave = novoSegredo(TAMANHOS.chaveRecuperacao, 5);
     const resenhaId = gerarIdResenha();
-    banco.executar(
-      'INSERT INTO resenhas (id, nome, chave_recuperacao_hash, criada_em) VALUES (?, ?, ?, ?)',
-      resenhaId,
-      nomeResenha,
-      chave.hash,
-      agora,
-    );
+    banco.executar('INSERT INTO resenhas (id, nome, criada_em) VALUES (?, ?, ?)', resenhaId, nomeResenha, agora);
     const seq = proximoSeq(banco, resenhaId);
     const membroId = gerarIdMembro();
     banco.executar(
@@ -66,7 +59,6 @@ export function criarResenha(ctx, entrada) {
       resenha: paraResenha(/** @type {object} */ (banco.um('SELECT * FROM resenhas WHERE id = ?', resenhaId))),
       membro: paraMembro(/** @type {object} */ (banco.um('SELECT * FROM membros WHERE id = ?', membroId))),
       token,
-      chaveRecuperacao: chave.exibido,
       convite,
     };
   });

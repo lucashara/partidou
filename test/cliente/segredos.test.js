@@ -24,7 +24,6 @@ test('repositorio-navegador importa em Node sem erro e expõe a fachada', async 
     'criarResenha',
     'consultarConvite',
     'aceitarConvite',
-    'recuperarAcesso',
     'usarTransferencia',
     'esquecerResenha',
     'abrir',

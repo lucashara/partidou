@@ -15,13 +15,13 @@ describe('criação de resenha', () => {
   });
   after(() => s.fechar());
 
-  test('devolve resenha, criador, token, chave e convite', async () => {
+  test('devolve resenha, criador, token e convite', async () => {
     const antes = s.relogio.agora();
     const r = await s.chamar('POST', '/api/resenhas', {
       corpo: { nome: '  Resenha   do Sábado ', apelido: ' Lucas ' },
     });
     assert.equal(r.status, 201);
-    const { resenha, membro, token, chaveRecuperacao, convite } = r.corpo;
+    const { resenha, membro, token, convite } = r.corpo;
     assert.match(resenha.id, /^[A-Za-z0-9_-]{22}$/);
     assert.equal(resenha.nome, 'Resenha do Sábado');
     assert.equal(resenha.criadaEm, antes);
@@ -32,10 +32,9 @@ describe('criação de resenha', () => {
       { apelido: 'Lucas', papel: 'criador', criadoEm: antes },
     );
     assert.match(token, /^[A-Za-z0-9_-]{43}$/);
-    assert.match(chaveRecuperacao, /^[0-9A-HJKMNP-TV-Z]{5}(-[0-9A-HJKMNP-TV-Z]{5}){4}$/);
     assert.match(convite.codigo, /^[0-9A-HJKMNP-TV-Z]{4}(-[0-9A-HJKMNP-TV-Z]{4}){2}$/);
     assert.equal(convite.expiraEm, antes + 7 * DIA);
-    assert.deepEqual(Object.keys(r.corpo).sort(), ['chaveRecuperacao', 'convite', 'membro', 'resenha', 'token']);
+    assert.deepEqual(Object.keys(r.corpo).sort(), ['convite', 'membro', 'resenha', 'token']);
   });
 
   test('o token devolvido autentica o criador', async () => {
@@ -45,12 +44,11 @@ describe('criação de resenha', () => {
     assert.deepEqual(e.corpo.eu, { membroId: membro.id, papel: 'criador', apelido: 'Ana' });
   });
 
-  test('cada resenha recebe identificador, token, chave e convite próprios', async () => {
+  test('cada resenha recebe identificador, token e convite próprios', async () => {
     const x = await s.criarResenha();
     const y = await s.criarResenha();
     assert.notEqual(x.id, y.id);
     assert.notEqual(x.token, y.token);
-    assert.notEqual(x.chaveRecuperacao, y.chaveRecuperacao);
     assert.notEqual(x.convite.codigo, y.convite.codigo);
   });
 
@@ -103,7 +101,7 @@ describe('log', () => {
       const transferencia = await s.chamar('POST', '/api/acesso/transferencia', { token: dono.token });
       await s.chamar('GET', `/api/resenhas/${dono.id}/estado`, { token: dono.token });
       await s.lancar(visita.token, dono.id, { ladoA: { nome: 'Competidor Reservado' } });
-      await s.chamar('POST', '/api/acesso/recuperar', { corpo: { chave: 'ZZZZZ-ZZZZZ-ZZZZZ-ZZZZZ-ZZZZZ' } });
+      await s.chamar('POST', '/api/convites/consultar', { corpo: { codigo: 'ZZZZ-ZZZZ-ZZZZ' } });
       await s.chamar('GET', `/api/resenhas/${dono.id}/estado`, { token: 'token-errado-token-errado-token-errado' });
 
       const log = readFileSync(join(pasta, 'partidou.log'), 'utf8');
@@ -111,7 +109,6 @@ describe('log', () => {
       const proibidos = [
         dono.token,
         visita.token,
-        dono.chaveRecuperacao,
         dono.convite.codigo,
         transferencia.corpo.codigo,
         'Resenha Secreta',

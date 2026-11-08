@@ -97,7 +97,7 @@ export function telaResenha(raiz, rota) {
     if (!aberto) {
       mostrarMensagem(
         'Resenha não encontrada',
-        'Esta resenha não está neste aparelho. Entrar com um convite ou com a chave de recuperação.',
+        'Esta resenha não está neste aparelho. Entrar com um convite ou com um código de transferência.',
       );
       return;
     }

@@ -1,4 +1,4 @@
-// Valor que o sistema mostra uma vez (convite, chave, código) com copiar e, quando existe, compartilhar.
+// Valor que o sistema mostra uma vez (convite, código) com copiar e, quando existe, compartilhar.
 import { icone } from '../icones.js';
 import { copiarTexto, h } from '../util.js';
 import { avisar } from './aviso.js';

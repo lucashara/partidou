@@ -35,7 +35,6 @@ describe('isolamento entre resenhas', () => {
       ['DELETE', `/api/resenhas/${id}`],
       ['POST', `/api/resenhas/${id}/convite`],
       ['DELETE', `/api/resenhas/${id}/convite`],
-      ['POST', `/api/resenhas/${id}/chave-recuperacao`],
       ['POST', `/api/resenhas/${id}/partidas`, { ladoA: { nome: 'X' }, ladoB: { nome: 'Y' }, placarA: 1, placarB: 0 }],
       ['PATCH', `/api/resenhas/${id}/partidas/${partidaB.id}`, { rev: 1, placarA: 9 }],
       ['DELETE', `/api/resenhas/${id}/partidas/${partidaB.id}?rev=1`],

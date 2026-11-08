@@ -21,7 +21,6 @@ describe('permissões', () => {
     const t = visita.token;
     negado(await s.chamar('POST', `/api/resenhas/${id}/convite`, { token: t }));
     negado(await s.chamar('DELETE', `/api/resenhas/${id}/convite`, { token: t }));
-    negado(await s.chamar('POST', `/api/resenhas/${id}/chave-recuperacao`, { token: t }));
     negado(await s.chamar('PATCH', `/api/resenhas/${id}`, { token: t, corpo: { nome: 'Golpe' } }));
     negado(await s.chamar('DELETE', `/api/resenhas/${id}/membros/${outro.membro.id}`, { token: t }));
     negado(await s.chamar('DELETE', `/api/resenhas/${id}/membros/${dono.membro.id}`, { token: t }));
@@ -202,18 +201,5 @@ describe('permissões', () => {
       (await s.chamar('POST', '/api/convites/consultar', { corpo: { codigo: dono.convite.codigo } })).status,
       404,
     );
-  });
-
-  test('chave de recuperação: só o criador rotaciona', async () => {
-    const { dono, visita, id } = await s.resenhaComDois();
-    negado(await s.chamar('POST', `/api/resenhas/${id}/chave-recuperacao`, { token: visita.token }));
-    const r = await s.chamar('POST', `/api/resenhas/${id}/chave-recuperacao`, { token: dono.token });
-    assert.equal(r.status, 200);
-    assert.notEqual(r.corpo.chaveRecuperacao, dono.chaveRecuperacao);
-    assert.match(r.corpo.chaveRecuperacao, /^[0-9A-Z]{5}(-[0-9A-Z]{5}){4}$/);
-    const antiga = await s.chamar('POST', '/api/acesso/recuperar', { corpo: { chave: dono.chaveRecuperacao } });
-    assert.equal(antiga.status, 404);
-    const nova = await s.chamar('POST', '/api/acesso/recuperar', { corpo: { chave: r.corpo.chaveRecuperacao } });
-    assert.equal(nova.status, 200);
   });
 });

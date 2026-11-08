@@ -36,7 +36,7 @@ Janelas fixas em memória, por processo. Cada linha tem contador próprio por IP
 | Requisições sem token | 60 por minuto |
 | Escritas autenticadas | 120 por minuto |
 | Leituras autenticadas | 300 por minuto |
-| Códigos errados (convite, chave, transferência) | A partir da 8ª falha, bloqueio de 30 segundos que dobra até 1 hora; as falhas são esquecidas após 24 horas |
+| Códigos errados (convite, transferência) | A partir da 8ª falha, bloqueio de 30 segundos que dobra até 1 hora; as falhas são esquecidas após 24 horas |
 | Disjuntor global de códigos errados | Com 20.000 falhas em uma hora, as rotas de código respondem 429 por 5 minutos. Cada origem (IPv4 ou prefixo IPv6 /48) soma no máximo 100 por hora |
 
 IPv6 é agrupado pelo prefixo /64. Excedido o limite, a resposta é 429 com `Retry-After`. No máximo 16 respostas de estado da resenha ficam em andamento ao mesmo tempo; as demais recebem 429.
@@ -48,7 +48,6 @@ IPv6 é agrupado pelo prefixo /64. Excedido o limite, a resposta é 429 com `Ret
 | Convite | 7 dias, um ativo por resenha |
 | Código de transferência | 10 minutos, uso único |
 | Sessão do aparelho | 180 dias sem uso |
-| Chave de recuperação | Sem validade; trocada a cada uso |
 | Resenha | Sem expiração |
 
 Sessões e convites vencidos ou revogados são apagados 30 dias depois, e transferências usadas ou vencidas, na hora da rotina, que roda na subida e a cada 6 horas.

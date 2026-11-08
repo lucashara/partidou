@@ -6,7 +6,7 @@ Aplicativo web instalável (PWA) para registrar o resultado de partidas entre am
 
 ## Recursos
 
-- Resenhas independentes, com criador e participantes, convite por link e chave de recuperação.
+- Resenhas independentes, com criador e participantes, acesso só por link de convite, sem conta nem senha.
 - Partida com dois lados de nome livre (pessoa, dupla ou time), placar final, pênaltis opcionais em empate e modalidade opcional.
 - Lançar, editar, excluir e desfazer, com histórico de quem lançou e de quem alterou.
 - Estatísticas: jogos, vitórias, empates, derrotas, gols pró e contra, saldo, maior diferença e confrontos. Pênaltis não entram nos gols.

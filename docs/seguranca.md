@@ -6,9 +6,8 @@ O Partidou não tem conta, e-mail nem senha. O acesso é por aparelho e por conv
 
 | Elemento | Formato | Como funciona |
 |---|---|---|
-| Sessão do aparelho | 256 bits aleatórios | Enviada no cabeçalho `Authorization: Bearer`. O banco guarda só o hash SHA-256. Vale 180 dias sem uso |
+| Sessão do aparelho | 256 bits aleatórios | Enviada no cabeçalho `Authorization: Bearer`. O banco guarda só o hash SHA-256. Vale 180 dias sem uso; cada membro mantém no máximo 10 sessões, e a mais antiga cai quando surge uma nova |
 | Convite | 12 símbolos (60 bits) | Vai no fragmento da URL (`#/c/CODIGO`), que o navegador não envia ao servidor nem a recursos externos. Vale 7 dias; gerar outro revoga o anterior |
-| Chave de recuperação | 25 símbolos (125 bits) | Exibida uma única vez ao criador. Reabre o acesso em outro aparelho, revoga as sessões antigas e é trocada |
 | Código de transferência | 8 símbolos (40 bits) | Passa a sessão de um aparelho para outro, por exemplo do Safari para o aplicativo instalado. Vale 10 minutos e um uso |
 | Identificadores | 128 bits (resenha), UUID (partida) | Imprevisíveis; nenhuma rota lista resenhas |
 
@@ -23,7 +22,7 @@ Toda rota autenticada resolve a sessão, confere que a resenha da URL é a do me
 | Ler estado e eventos da resenha | Qualquer membro ativo |
 | Lançar partida | Qualquer membro |
 | Editar ou excluir partida | Quem lançou e o criador |
-| Renomear lado, gerar convite, remover participante, trocar chave, excluir resenha | Só o criador |
+| Renomear lado, gerar convite, remover participante, excluir resenha | Só o criador |
 | Sair da resenha | O próprio participante |
 
 Membro removido perde as sessões na mesma transação. Um aparelho nunca enxerga outra resenha, e o acerto de um identificador de outra resenha devolve 404.
@@ -41,7 +40,8 @@ Membro removido perde as sessões na mesma transação. Um aparelho nunca enxerg
 
 | Proteção | Valor |
 |---|---|
-| `Content-Security-Policy` | `default-src 'self'`, sem script nem estilo inline, sem `frame-ancestors` |
+| `Content-Security-Policy` | `default-src 'self'`, sem script nem estilo inline, `object-src 'none'`, `base-uri 'none'` e `frame-ancestors 'none'` |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
 | `Referrer-Policy` | `no-referrer` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Permissions-Policy` | Câmera, microfone e localização desligados |
@@ -63,4 +63,5 @@ Nenhum segredo vai em URL de requisição, em log ou em recurso de terceiros. O 
 | Banco e backups no mesmo servidor | Perda do servidor perde os dois | Risco aceito; a cópia externa cifrada fica para decisão do operador |
 | Criação de resenha sem verificação humana | Muitos IPs podem esgotar a cota diária | Limite por IP e por dia; sem captcha |
 | Participante mal-intencionado | Pode esgotar a cota de nomes de lados da resenha | O criador remove o participante; os nomes criados continuam e podem ser renomeados |
-| Resposta perdida na recuperação de chave | O criador pode ficar sem acesso | Recuperação manual pelo operador do servidor |
+| Criador sem nenhum aparelho com acesso | Perde a administração da resenha. Não há chave nem senha de recuperação | Gerar o código de transferência em Ajustes antes de trocar de aparelho. Sem isso, só o operador do servidor recupera |
+| Segredo guardado só no aparelho | A limpeza dos dados do navegador apaga a sessão | Participante volta com novo convite; o criador, por código de transferência de outro aparelho |

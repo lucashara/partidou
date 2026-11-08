@@ -30,7 +30,7 @@ export function abrirAjuda({ primeiraVez = false } = {}) {
   const nota = h(
     'p',
     { class: 'apoio' },
-    'Cada aparelho guarda o próprio acesso. A chave de recuperação do criador permite retomar a resenha em outro aparelho.',
+    'Cada aparelho guarda o próprio acesso. Para usar a resenha em outro aparelho, gerar um código de transferência em Ajustes.',
   );
   const botao = h(
     'button',
