@@ -60,6 +60,7 @@
   --cartao-borda: #b39500;
   --erro: #c0192c;
   --erro-suave: #fbe9eb;
+  --texto-sobre-erro: #ffffff;
   --ok: #0c7040;
   --alerta: #8a5a00;
 
@@ -109,6 +110,7 @@
     --cartao-borda: #ffd60a;
     --erro: #ff7b8b;
     --erro-suave: #3a1620;
+    --texto-sobre-erro: #1a0a0e;
     --ok: #4fd18b;
     --alerta: #f2b84b;
     --sombra-flutuante: 0 14px 36px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);

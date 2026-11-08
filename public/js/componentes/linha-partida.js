@@ -3,6 +3,7 @@
 import { modalidadePorId } from '../../../compartilhado/modalidades.js';
 import { vencedorFinal } from '../../../compartilhado/placar.js';
 import { hora } from '../formatos.js';
+import { icone } from '../icones.js';
 import { h, iniciais } from '../util.js';
 
 /**
@@ -60,7 +61,12 @@ export function linhaPartida(partida, { nomeDoLado, nomeDoMembro, aoAbrir, nova 
           `${lancou} · ${hora(partida.jogadaEm)}${editou ? ` · editada por ${editou}` : ''}${modalidade ? ` · ${modalidade.nome}` : ''}`,
         ),
       ),
-      partida.pendente && h('span', { class: 'marca-pendente' }, 'Pendente'),
+      h(
+        'span',
+        { class: 'partida-fim' },
+        partida.pendente && h('span', { class: 'marca-pendente' }, 'Pendente'),
+        h('span', { class: 'partida-seta', 'aria-hidden': 'true' }, icone('avancar', { tamanho: 16 })),
+      ),
     ),
   );
 }

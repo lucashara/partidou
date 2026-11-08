@@ -11,6 +11,7 @@
 
 .lista-resenhas {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   border: 1px solid var(--traco-forte);
   border-radius: var(--raio-3);
   background: var(--folha);
@@ -121,11 +122,13 @@
   min-width: 0;
   padding: 0;
   border: 0;
-  border-radius: var(--raio-2);
+  border-bottom: 2px solid var(--traco-forte);
+  border-radius: 0;
   background: transparent;
   color: var(--tinta);
   caret-color: var(--tinta);
-  font: 800 clamp(5.5rem, 26vw, 8rem) / 0.95 var(--fonte-numeros);
+  /* O piso não cresce com a fonte do sistema: a 200% o numeral continua cabendo na célula. */
+  font: 800 clamp(3rem, 26vw, 8rem) / 0.95 var(--fonte-numeros);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -133,10 +136,11 @@
 .numeral:focus-visible {
   outline: 2px solid var(--tinta);
   outline-offset: 0;
+  border-bottom-color: var(--tinta);
 }
 
 .numeral-pequeno {
-  font-size: clamp(3rem, 14vw, 4.25rem);
+  font-size: clamp(2.25rem, 14vw, 4.25rem);
 }
 
 .passos {
@@ -211,6 +215,27 @@
   background: linear-gradient(to top, var(--papel) 70%, transparent);
 }
 
+.confirmacao-chave {
+  display: grid;
+  gap: var(--e-2);
+}
+
+.caixa {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.caixa input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--tinta);
+}
+
 .acao-lancar-dica {
   min-height: 1.25em;
   color: var(--texto-3);
@@ -220,7 +245,7 @@
 
 .acao-dupla {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
   gap: var(--e-2);
 }
 
@@ -273,6 +298,24 @@
 
 button.partida:active {
   background: var(--campo);
+}
+
+@media (hover: hover) {
+  button.partida:hover {
+    background: var(--campo);
+  }
+}
+
+.partida-fim {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.partida-seta {
+  display: inline-flex;
+  color: var(--texto-3);
 }
 
 .partida-lado {

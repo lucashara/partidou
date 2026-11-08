@@ -13,13 +13,15 @@ export function telaInicio(raiz) {
 
   const desenhar = (resenhas) => {
     if (!ativo) return;
+    // Com resenhas listadas a lista é o foco: as duas portas viram secundárias; o amarelo fica no estado vazio.
+    const vazio = resenhas.length === 0;
     const acoes = h(
       'div',
-      { class: 'inicio-acoes' },
-      h('a', { class: 'btn btn-primario btn-grande', href: '#/criar' }, 'Criar resenha'),
-      h('a', { class: `btn${resenhas.length ? '' : ' btn-grande'}`, href: '#/entrar' }, 'Entrar em resenha'),
+      { class: vazio ? 'inicio-acoes' : 'acao-dupla' },
+      h('a', { class: `btn${vazio ? ' btn-primario btn-grande' : ''}`, href: '#/criar' }, 'Criar resenha'),
+      h('a', { class: `btn${vazio ? ' btn-grande' : ''}`, href: '#/entrar' }, 'Entrar em resenha'),
     );
-    if (resenhas.length === 0) {
+    if (vazio) {
       trocarFilhos(
         raiz,
         h(

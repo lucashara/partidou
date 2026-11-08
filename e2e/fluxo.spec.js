@@ -28,14 +28,14 @@ test('0 x 0 exige confirmação e empate aceita pênaltis separados dos gols', a
   await criarResenha(page);
   await page.getByRole('combobox', { name: 'Nome do Lado A' }).fill('Lucas');
   await page.getByRole('combobox', { name: 'Nome do Lado B' }).fill('Rafa');
-  await expect(page.getByText('Defina o placar.')).toBeVisible();
+  await expect(page.getByText('Placar não definido.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Lançar partida' })).toHaveAttribute('aria-disabled', 'true');
   await page.getByRole('button', { name: 'Registrar 0 x 0' }).click();
   await expect(page.getByRole('button', { name: 'Lançar partida' })).not.toHaveAttribute('aria-disabled', 'true');
 
   await page.getByRole('textbox', { name: 'Placar do Lado A' }).fill('1');
   await page.getByRole('textbox', { name: 'Placar do Lado B' }).fill('1');
-  await page.getByRole('button', { name: /Houve pênaltis/ }).click();
+  await page.getByRole('button', { name: 'Pênaltis', exact: true }).click();
   await page.getByRole('textbox', { name: 'Pênaltis do Lado A' }).fill('4');
   await page.getByRole('textbox', { name: 'Pênaltis do Lado B' }).fill('3');
   await page.getByRole('button', { name: 'Lançar partida' }).click();

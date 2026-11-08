@@ -73,13 +73,7 @@
 .btn-perigo-cheio {
   background: var(--erro);
   border-color: var(--erro);
-  color: #fff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) .btn-perigo-cheio {
-    color: #1a0a0e;
-  }
+  color: var(--texto-sobre-erro);
 }
 
 .btn-grande {
@@ -228,16 +222,12 @@
   color: var(--texto-3);
 }
 
-/* Indicador de sincronização */
+/* Indicador de sincronização: ponto de cor e rótulo, sem moldura, para não parecer botão. */
 .sync {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
-  padding: 0 var(--e-2);
-  border: 1px solid var(--traco);
-  border-radius: 999px;
-  background: var(--folha);
+  min-height: 24px;
   color: var(--texto-2);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -246,6 +236,7 @@
 
 .sync::before {
   content: "";
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -259,6 +250,11 @@
 .sync[data-estado="offline"]::before {
   background: transparent;
   box-shadow: inset 0 0 0 2px var(--texto-3);
+}
+
+.sync[data-estado="erro"],
+.sync[data-estado="sem-acesso"] {
+  color: var(--erro);
 }
 
 .sync[data-estado="erro"]::before,
@@ -278,9 +274,7 @@
   margin-inline: auto;
   padding-bottom: var(--seguro-base);
   border-top: 1px solid var(--traco);
-  background: color-mix(in srgb, var(--folha) 94%, transparent);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: var(--folha);
 }
 
 .aba {
@@ -321,8 +315,6 @@
     border: 1px solid var(--traco);
     border-radius: var(--raio-2);
     background: var(--folha);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
 
   .aba {
@@ -413,19 +405,21 @@
   }
 }
 
-/* Aviso temporário */
+/* Aviso temporário: no topo, abaixo do cabeçalho, para nunca cobrir a ação primária nem a barra de abas. */
+/* Dentro de folha o aviso desce para baixo do título, preservando o botão de fechar. */
+.folha .avisos {
+  position: absolute;
+  inset: calc(var(--e-2) * 3 + 45px) 0 auto;
+}
+
 .avisos {
   position: fixed;
-  inset: auto 0 calc(var(--altura-abas) + var(--seguro-base) + var(--e-3));
+  inset: calc(var(--altura-topo) + var(--seguro-topo) + var(--e-2)) 0 auto;
   z-index: 40;
   display: flex;
   justify-content: center;
   padding: 0 var(--e-4);
   pointer-events: none;
-}
-
-.avisos.sem-abas {
-  bottom: calc(var(--seguro-base) + var(--e-4));
 }
 
 .aviso {
@@ -446,7 +440,7 @@
 
 .aviso[data-tom="erro"] {
   background: var(--erro);
-  color: #fff;
+  color: var(--texto-sobre-erro);
 }
 
 .aviso-texto {
@@ -456,7 +450,8 @@
 }
 
 .aviso .btn {
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   border-color: transparent;
   background: transparent;
   color: inherit;
@@ -474,9 +469,15 @@
   animation: aviso-tempo linear forwards;
 }
 
+@media (min-width: 768px) {
+  .avisos {
+    inset-block-start: calc(var(--altura-topo) + 48px + var(--e-4));
+  }
+}
+
 @keyframes aviso-entra {
   from {
-    transform: translateY(12px);
+    transform: translateY(-12px);
     opacity: 0;
   }
 }
@@ -538,17 +539,7 @@
 }
 
 @media (max-width: 420px) {
-  .sync[data-estado="sincronizado"] .sync-texto {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
-  .sync[data-estado="sincronizado"] {
-    min-width: 28px;
-    justify-content: center;
-    padding: 0;
+  .sync {
+    font-size: 0.75rem;
   }
 }

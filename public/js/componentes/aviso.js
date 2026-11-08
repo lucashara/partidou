@@ -1,4 +1,4 @@
-// Aviso temporário na base da tela, com ação opcional (por exemplo, Desfazer). Um por vez.
+// Aviso temporário no topo da tela, com ação opcional (por exemplo, Desfazer). Um por vez.
 import { h } from '../util.js';
 
 /** @type {{ el: HTMLElement, fechar: () => void } | null} */
@@ -8,6 +8,22 @@ export function fecharAviso() {
   atual?.fechar();
 }
 
+const comOuvinte = new WeakSet();
+
+/** Com folha aberta o contêiner vai para dentro dela (fora do top layer o aviso ficaria atrás); ao fechar, volta ao documento. */
+function ancorar(raiz) {
+  const abertas = document.querySelectorAll('dialog[open]');
+  const folha = abertas[abertas.length - 1];
+  const destino = folha ?? document.body;
+  if (raiz.parentElement !== destino) destino.append(raiz);
+  if (folha && !comOuvinte.has(folha)) {
+    comOuvinte.add(folha);
+    folha.addEventListener('close', () => {
+      if (!raiz.isConnected || raiz.parentElement === folha) ancorar(raiz);
+    });
+  }
+}
+
 /**
  * @param {{ texto: string, tom?: 'erro', acao?: { rotulo: string, aoClicar: () => void }, duracaoMs?: number }} opcoes
  * @returns {{ fechar: () => void }}
@@ -15,6 +31,7 @@ export function fecharAviso() {
 export function avisar({ texto, tom, acao, duracaoMs = 5000 }) {
   atual?.fechar();
   const raiz = /** @type {HTMLElement} */ (document.getElementById('avisos'));
+  ancorar(raiz);
   const barra = h('span', { class: 'aviso-tempo' });
   barra.style.animationDuration = `${duracaoMs}ms`;
 
@@ -51,9 +68,4 @@ export function avisar({ texto, tom, acao, duracaoMs = 5000 }) {
   temporizador = setTimeout(fechar, duracaoMs);
   atual = { el, fechar };
   return { fechar };
-}
-
-/** Ajusta a posição dos avisos conforme a barra de abas esteja visível. */
-export function posicionarAvisos(comAbas) {
-  document.getElementById('avisos')?.classList.toggle('sem-abas', !comAbas);
 }

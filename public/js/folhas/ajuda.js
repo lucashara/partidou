@@ -35,7 +35,7 @@ export function abrirAjuda({ primeiraVez = false } = {}) {
   const botao = h(
     'button',
     { type: 'button', class: 'btn btn-primario btn-grande btn-bloco', autofocus: true, onClick: () => folha.fechar() },
-    primeiraVez ? 'Começar' : 'Entendi',
+    primeiraVez ? 'Começar' : 'Fechar',
   );
   folha = abrirFolha({
     titulo: primeiraVez ? 'Jogou? Registrou.' : 'Como funciona',

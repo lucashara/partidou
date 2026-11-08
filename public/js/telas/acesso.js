@@ -7,6 +7,7 @@ import {
 } from '../../../compartilhado/codigos.js';
 import { blocoSegredo } from '../componentes/bloco-segredo.js';
 import { criarCampo } from '../componentes/campo.js';
+import { confirmacaoChave } from '../componentes/confirmacao-chave.js';
 import { desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
 import { mensagemDeErro } from '../erros.js';
@@ -66,15 +67,7 @@ export function telaAcesso(raiz, rota) {
           exibicao: formatarCodigo(chaveRecuperacao, 5),
           apoio: 'Exibida somente agora. A chave anterior deixou de valer.',
         }),
-        h(
-          'button',
-          {
-            type: 'button',
-            class: 'btn btn-primario btn-grande btn-bloco',
-            onClick: () => substituir(caminhoResenha(resenhaId)),
-          },
-          'Chave guardada, abrir resenha',
-        ),
+        confirmacaoChave({ aoAbrir: () => substituir(caminhoResenha(resenhaId)) }),
       ),
     );
     scrollTo(0, 0);

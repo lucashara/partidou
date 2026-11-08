@@ -120,6 +120,8 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
     }
 
     function desenharLista() {
+      if (ativa >= 0) entrada.setAttribute('aria-activedescendant', `${idLista}-${ativa}`);
+      else entrada.removeAttribute('aria-activedescendant');
       trocarFilhos(
         lista,
         opcoes.map((o, i) =>
@@ -128,6 +130,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
             {
               type: 'button',
               role: 'option',
+              id: `${idLista}-${i}`,
               class: `sugestao${o.novo ? ' sugestao-novo' : ''}`,
               'aria-selected': String(i === ativa),
               onPointerdown: (e) => e.preventDefault(),
@@ -150,6 +153,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
     function fecharLista() {
       lista.hidden = true;
       entrada.setAttribute('aria-expanded', 'false');
+      entrada.removeAttribute('aria-activedescendant');
     }
 
     function escolher(opcao) {
@@ -309,7 +313,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
               },
             },
             icone('mais', { tamanho: 18 }),
-            'Houve pênaltis',
+            'Pênaltis',
           ),
         ),
       );
@@ -333,7 +337,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
                 aoMudar();
               },
             },
-            'Remover',
+            'Remover pênaltis',
           ),
         ),
         montarPenaltis(),
@@ -364,11 +368,11 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
     situacao() {
       const nomeA = normalizarNome(estado.lados.a.nome);
       const nomeB = normalizarNome(estado.lados.b.nome);
-      if (!nomeA || !nomeB) return { valido: false, motivo: 'Informe os dois lados.', faltaPlacar: false };
+      if (!nomeA || !nomeB) return { valido: false, motivo: 'Lados obrigatórios.', faltaPlacar: false };
       const igual =
         (estado.lados.a.id && estado.lados.a.id === estado.lados.b.id) || chaveDeNome(nomeA) === chaveDeNome(nomeB);
       if (igual) return { valido: false, motivo: 'Os lados precisam ser diferentes.', faltaPlacar: false };
-      if (!estado.tocado) return { valido: false, motivo: 'Defina o placar.', faltaPlacar: true };
+      if (!estado.tocado) return { valido: false, motivo: 'Placar não definido.', faltaPlacar: true };
       if (estado.penaltis && estado.penaltis.a === estado.penaltis.b)
         return { valido: false, motivo: 'Os pênaltis não podem terminar empatados.', faltaPlacar: false };
       return { valido: true, motivo: null, faltaPlacar: false };

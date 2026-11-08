@@ -4,6 +4,7 @@ import { formatarCodigo } from '../../../compartilhado/codigos.js';
 import { LIMITES } from '../../../compartilhado/nomes.js';
 import { blocoSegredo } from '../componentes/bloco-segredo.js';
 import { criarCampo } from '../componentes/campo.js';
+import { confirmacaoChave } from '../componentes/confirmacao-chave.js';
 import { desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
 import { mensagemDeErro } from '../erros.js';
@@ -84,15 +85,7 @@ export function telaCriar(raiz) {
           apoio:
             'Exibida somente agora. Sem ela, o acesso do criador não pode ser recuperado se este aparelho for perdido.',
         }),
-        h(
-          'button',
-          {
-            type: 'button',
-            class: 'btn btn-primario btn-grande btn-bloco',
-            onClick: () => substituir(caminhoResenha(resenhaId)),
-          },
-          'Chave guardada, abrir resenha',
-        ),
+        confirmacaoChave({ aoAbrir: () => substituir(caminhoResenha(resenhaId)) }),
       ),
     );
     scrollTo(0, 0);

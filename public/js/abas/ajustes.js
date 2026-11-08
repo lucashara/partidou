@@ -111,12 +111,12 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
           const proprio = m.id === visao.eu.membroId;
           const removivel = criador && !proprio && m.papel !== 'criador';
           return linha(
-            proprio ? `${m.apelido} (você)` : m.apelido,
-            PAPEIS[m.papel],
+            m.apelido,
+            proprio ? `${PAPEIS[m.papel]} · Participante atual` : PAPEIS[m.papel],
             removivel
               ? [
                   botao(
-                    'Remover',
+                    'Remover participante',
                     async (alvo) => {
                       const ok = await confirmar({
                         titulo: 'Remover participante',
@@ -194,7 +194,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
               'Gerando…',
               async () => {
                 segredos.convite = await controlador.admin.gerarConvite();
-                desenhar(true);
+                desenhar(true, 'convite');
               },
               'Falha ao gerar o convite.',
             ),
@@ -216,6 +216,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       ),
       convite &&
         blocoSegredo({
+          marca: 'convite',
           rotulo: 'Link de convite',
           valor: link,
           exibicao: link.replace(/^https?:\/\//, ''),
@@ -235,7 +236,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       'Gerando…',
       async () => {
         segredos.transferencia = await controlador.admin.gerarTransferencia();
-        desenhar(true);
+        desenhar(true, 'transferencia');
       },
       'Falha ao gerar o código.',
     );
@@ -253,7 +254,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       'Gerando…',
       async () => {
         segredos.chave = (await controlador.admin.rotacionarChave()).chaveRecuperacao;
-        desenhar(true);
+        desenhar(true, 'chave');
       },
       'Falha ao gerar a chave.',
     );
@@ -272,7 +273,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
         if (!ok) return;
         await executar(
           alvo,
-          'Aguardar…',
+          'Saindo…',
           async () => {
             await acao();
             aoEncerrar(mensagem);
@@ -326,6 +327,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       ),
       transferencia &&
         blocoSegredo({
+          marca: 'transferencia',
           rotulo: 'Código de transferência',
           valor: transferencia.codigo,
           exibicao: formatarCodigo(transferencia.codigo),
@@ -333,6 +335,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
         }),
       chave &&
         blocoSegredo({
+          marca: 'chave',
           rotulo: 'Chave de recuperação',
           valor: chave,
           exibicao: formatarCodigo(chave, 5),
@@ -344,18 +347,26 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
         () => controlador.admin.sairDesteAparelho(),
         'Resenha removida deste aparelho.',
       ),
-      criador
-        ? botaoExcluir()
-        : botaoDeSaida(
-            'Sair da resenha',
-            'O apelido deixa a lista de participantes. As partidas lançadas permanecem.',
-            () => controlador.admin.sairDaResenha(),
-            'Saída da resenha concluída.',
-          ),
+      !criador &&
+        botaoDeSaida(
+          'Sair da resenha',
+          'O apelido deixa a lista de participantes. As partidas lançadas permanecem.',
+          () => controlador.admin.sairDaResenha(),
+          'Saída da resenha concluída.',
+        ),
     );
   }
 
-  function desenhar(forcar = false) {
+  function secaoExclusao() {
+    return secao(
+      'Exclusão',
+      h('p', { class: 'apoio' }, 'Apaga a resenha e todas as partidas para todos os participantes. Sem desfazer.'),
+      botaoExcluir(),
+    );
+  }
+
+  /** @param {boolean} [forcar] @param {string} [rolarPara] segredo recém-gerado, levado à vista (fica abaixo da lista) */
+  function desenhar(forcar = false, rolarPara) {
     if (!visao) return;
     const agora = Date.now();
     for (const chave of ['convite', 'transferencia']) {
@@ -378,8 +389,16 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       criador && secaoConvite(),
       secaoParticipantes(criador),
       secaoAcesso(criador),
+      criador && secaoExclusao(),
       h('p', { class: 'rodape-app' }, 'Partidou · Jogou? Registrou.'),
     );
+    if (rolarPara) {
+      const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.querySelector(`[data-segredo="${rolarPara}"]`)?.scrollIntoView({
+        behavior: reduzido ? 'auto' : 'smooth',
+        block: 'center',
+      });
+    }
   }
 
   return {

@@ -86,7 +86,7 @@ export function criarAbaPlacar({ resenhaId, controlador, abrirPartida, irHistori
     } else if (s.faltaPlacar) {
       trocarFilhos(
         dica,
-        'Defina o placar. ',
+        'Placar não definido. ',
         h(
           'button',
           { type: 'button', class: 'btn btn-texto', onClick: () => editor.confirmarZeroZero() },

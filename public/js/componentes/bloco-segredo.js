@@ -4,9 +4,9 @@ import { copiarTexto, h } from '../util.js';
 import { avisar } from './aviso.js';
 
 /**
- * @param {{ rotulo: string, valor: string, exibicao?: string, apoio?: string, compartilhavel?: { title: string, text?: string, url?: string } }} opcoes
+ * @param {{ marca?: string, rotulo: string, valor: string, exibicao?: string, apoio?: string, compartilhavel?: { title: string, text?: string, url?: string } }} opcoes
  */
-export function blocoSegredo({ rotulo, valor, exibicao, apoio, compartilhavel }) {
+export function blocoSegredo({ marca, rotulo, valor, exibicao, apoio, compartilhavel }) {
   const copiar = h(
     'button',
     {
@@ -38,7 +38,7 @@ export function blocoSegredo({ rotulo, valor, exibicao, apoio, compartilhavel })
     );
   return h(
     'div',
-    { class: 'secao' },
+    { class: 'secao', dataset: marca ? { segredo: marca } : {} },
     h('span', { class: 'campo-rotulo' }, rotulo),
     h('p', { class: 'codigo-bloco numeros' }, exibicao ?? valor),
     apoio && h('p', { class: 'apoio' }, apoio),
