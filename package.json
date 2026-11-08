@@ -1,0 +1,26 @@
+{
+  "name": "partidou",
+  "version": "1.0.0",
+  "description": "Partidou: registro de resultados de partidas entre amigos",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node server/main.js",
+    "dev": "DEV=1 COOKIE_SECURE=0 node --watch server/main.js",
+    "test": "node --test --test-reporter=spec test/",
+    "tipos": "tsc -p tsconfig.servidor.json && tsc -p tsconfig.cliente.json",
+    "lint": "biome check .",
+    "formatar": "biome check --write .",
+    "e2e": "playwright test",
+    "verificar": "npm run lint && npm run tipos && npm test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.6",
+    "@playwright/test": "1.64.0",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}
