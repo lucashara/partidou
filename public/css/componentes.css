@@ -561,8 +561,18 @@
   margin-left: calc(var(--e-1) * -1);
 }
 
+/* Em tela estreita, o estado normal vira só o ponto verde (o texto segue para o leitor de tela), e o título da resenha ganha o espaço. */
 @media (max-width: 420px) {
   .sync {
     font-size: 0.75rem;
+  }
+
+  .sync[data-estado="sincronizado"] .sync-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
