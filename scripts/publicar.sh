@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Roda no Mac. Valida o commit atual, envia o código ao servidor, publica com conferência e reverte se falhar.
-# Uso: scripts/publicar.sh   (PARTIDOU_SERVIDOR e PARTIDOU_URL alteram o destino; PARTIDOU_URL= pula a conferência externa)
+# Uso: scripts/publicar.sh. PARTIDOU_SERVIDOR (alias SSH) é obrigatório; PARTIDOU_URL habilita a conferência pública.
+# Os dois podem ficar em .local/publicar.env (fora do Git).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SERVIDOR=${PARTIDOU_SERVIDOR:-<alias-ssh>}
-URL=${PARTIDOU_URL-https://<dominio>}
+# shellcheck disable=SC1091
+[ -f .local/publicar.env ] && . .local/publicar.env
+SERVIDOR=${PARTIDOU_SERVIDOR:?Definir PARTIDOU_SERVIDOR com o alias SSH do servidor.}
+URL=${PARTIDOU_URL-}
 RAIZ=/opt/partidou
 
 [ -z "$(git status --porcelain)" ] || { echo "Há alterações não commitadas. Commitar antes de publicar." >&2; exit 1; }
