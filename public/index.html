@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Partidou</title>
+    <meta name="description" content="Partidou: jogou? Registrou. Resultados de partidas entre amigos, em um espaço compartilhado por convite." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f2f4f8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#080c18" media="(prefers-color-scheme: dark)" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Partidou" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icone.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="preload" href="/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/barlow-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/componentes.css" />
+    <link rel="stylesheet" href="/css/telas.css" />
+  </head>
+  <body>
+    <!--
+      THESIS: súmula de jogo contemporânea. O placar é o campo preenchido de um formulário, não um painel; recusa o painel LED escuro com um neon.
+      OWN-WORLD: folha branca ou carbono azul-noite, campos de traço fino com rótulo no canto, tinta azul de esferográfica nos números, cartão amarelo como única ação e cartão vermelho para excluir; Barlow e Barlow Condensed.
+      STORY: quem jogou registra em poucos toques, vê o histórico por dia e confia que todos os aparelhos mostram a mesma folha.
+      FIRST VIEWPORT: cabeçalho com nome da resenha e estado de sincronização; folha com dois lados, números de 88 a 128 px com botões de passo; botão "Lançar partida" amarelo ao alcance do polegar.
+      FORM: sétimo candidato da lista própria (súmula da várzea), seed 6d1b9f0c.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
+    <div class="app" id="app">
+      <header class="topo" id="topo"></header>
+      <nav class="abas" id="abas" aria-label="Seções da resenha" hidden></nav>
+      <main class="principal" id="principal" tabindex="-1"></main>
+    </div>
+    <div class="avisos" id="avisos" role="status" aria-live="polite"></div>
+    <noscript><p class="faixa">Este aplicativo precisa de JavaScript habilitado.</p></noscript>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
