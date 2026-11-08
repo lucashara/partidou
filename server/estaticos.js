@@ -99,6 +99,8 @@ export function criarEstaticos(diretorios, { recarregar = false } = {}) {
         'Content-Type': ativo.tipo,
         ETag: ativo.etag,
         'Cache-Control': 'no-cache',
+        // A Cloudflare reescreve o Cache-Control de estático para 4 h; a borda não guarda e o navegador revalida por ETag.
+        'CDN-Cache-Control': 'no-store',
       };
       if (req.headers['if-none-match'] === ativo.etag) {
         res.writeHead(304, cabecalhos).end();
