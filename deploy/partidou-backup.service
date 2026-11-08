@@ -1,0 +1,6 @@
+[Unit]
+Description=Backup diário do banco do Partidou
+
+[Service]
+Type=oneshot
+ExecStart=/opt/partidou/scripts/backup.sh
