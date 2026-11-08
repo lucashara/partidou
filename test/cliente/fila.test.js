@@ -382,7 +382,7 @@ describe('folha de edição aberta e alteração de outro aparelho', () => {
     const { controlador } = await abrir(ambiente);
     const { partidaId } = await controlador.lancar(partidaSimples());
     await controlador.ressincronizar();
-    const revBase = controlador.visao().partidas[0].rev;
+    const revBase = controlador.revisaoEsperada(partidaId);
     ambiente.servidor.externo.editar(partidaId, { placarA: 7, placarB: 7 });
     await controlador.ressincronizar();
     await assert.rejects(controlador.editar(partidaId, { placarA: 2 }, { revBase }), { codigo: 'CONFLITO_REVISAO' });
@@ -391,23 +391,55 @@ describe('folha de edição aberta e alteração de outro aparelho', () => {
     const atual = controlador.visao().partidas[0];
     assert.deepEqual([atual.placarA, atual.placarB], [7, 7]);
 
-    await controlador.editar(partidaId, { placarA: 2 }, { revBase: atual.rev });
+    await controlador.editar(partidaId, { placarA: 2 }, { revBase: controlador.revisaoEsperada(partidaId) });
     await controlador.ressincronizar();
     assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 2);
   });
 
-  test('revBase 0 (criação ainda pendente ao abrir) não conta como conflito depois da confirmação', async () => {
+  test('folha aberta sobre criação pendente: a confirmação própria não é conflito', async () => {
     const ambiente = criarAmbiente();
     const { controlador } = await abrir(ambiente);
     derrubarRede(ambiente);
     const { partidaId } = await controlador.lancar(partidaSimples());
     await assentar();
     assert.equal(controlador.visao().partidas[0].rev, 0);
+    const revBase = controlador.revisaoEsperada(partidaId);
     ambiente.servidor.limpar();
     await controlador.ressincronizar();
-    await controlador.editar(partidaId, { placarA: 4 }, { revBase: 0 });
+    await controlador.editar(partidaId, { placarA: 4 }, { revBase });
     await controlador.ressincronizar();
     assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 4);
+  });
+
+  test('folha aberta sobre criação pendente: edição de outro aparelho depois da confirmação é conflito', async () => {
+    const ambiente = criarAmbiente();
+    const { controlador } = await abrir(ambiente);
+    derrubarRede(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await assentar();
+    const revBase = controlador.revisaoEsperada(partidaId);
+    ambiente.servidor.limpar();
+    await controlador.ressincronizar();
+    ambiente.servidor.externo.editar(partidaId, { placarA: 9, placarB: 9 });
+    await controlador.ressincronizar();
+    await assert.rejects(controlador.editar(partidaId, { placarA: 3 }, { revBase }), { codigo: 'CONFLITO_REVISAO' });
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 9);
+  });
+
+  test('folha aberta sobre edição pendente do próprio aparelho: a confirmação não é conflito', async () => {
+    const ambiente = criarAmbiente();
+    const { controlador } = await abrir(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await controlador.ressincronizar();
+    derrubarRede(ambiente);
+    await controlador.editar(partidaId, { placarA: 5 });
+    await assentar();
+    const revBase = controlador.revisaoEsperada(partidaId);
+    ambiente.servidor.limpar();
+    await controlador.ressincronizar();
+    await controlador.editar(partidaId, { placarA: 6 }, { revBase });
+    await controlador.ressincronizar();
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 6);
   });
 });
 

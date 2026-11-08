@@ -41,7 +41,7 @@ export function abrirFolhaPartida({ partida, visao, controlador, nomeDoLado, nom
 
   let folha;
   // Revisão em que a folha abriu: o envio é recusado se outro aparelho alterou a partida depois disso.
-  let revBase = partida.rev;
+  let revBase = controlador.revisaoEsperada(partida.id);
   const editor = criarEditorPlacar({ aoMudar: atualizarBotao });
   editor.definirCompetidores(competidores);
   const carregarNoEditor = (/** @type {any} */ p) =>
@@ -106,7 +106,7 @@ export function abrirFolhaPartida({ partida, visao, controlador, nomeDoLado, nom
       avisar({ texto: 'Partida excluída em outro aparelho.', tom: 'erro' });
       return;
     }
-    revBase = atual.rev;
+    revBase = controlador.revisaoEsperada(partida.id);
     carregarNoEditor(atual);
     avisar({ texto: erro.mensagem, tom: 'erro' });
   }

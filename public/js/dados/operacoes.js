@@ -114,7 +114,8 @@ const ENVIO_VALIDO_MS = 30_000;
  * @param {import('./tipos.js').Operacao} op
  * @param {number} agora
  */
-export const envioEmCurso = (op, agora) => op.enviandoDesde !== undefined && agora - op.enviandoDesde < ENVIO_VALIDO_MS;
+export const envioEmCurso = (op, agora) =>
+  op.enviandoDesde !== undefined && agora >= op.enviandoDesde && agora - op.enviandoDesde < ENVIO_VALIDO_MS;
 
 /**
  * Indica se o servidor já está no estado que a operação produziria (reenvio após resposta perdida).

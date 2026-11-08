@@ -147,6 +147,9 @@ export async function abrirControlador({ resenha: inicial, deps, esquecerLocal, 
     if (!partida) throw new ErroLocal('PARTIDA_NAO_ENCONTRADA', 'Partida não encontrada.');
     return partida;
   };
+  /** @param {{ id: string, rev: number }} partida */
+  const revisaoEsperadaDe = (partida) =>
+    partida.rev + motor.local().fila.filter((o) => o.partidaId === partida.id).length;
   /** Criação que ainda não saiu do aparelho; a que está sendo enviada (por qualquer aba) já não pode ser alterada. */
   const criacaoPendente = (/** @type {import('./tipos.js').Operacao[]} */ fila, /** @type {string} */ partidaId) =>
     fila.find((o) => o.tipo === 'criar' && o.partidaId === partidaId && !envioEmCurso(o, agora()));
@@ -258,14 +261,22 @@ export async function abrirControlador({ resenha: inicial, deps, esquecerLocal, 
     },
 
     /**
-     * `revBase` é a revisão em que a folha de edição foi aberta: se a partida mudou desde então, nada é enfileirado.
+     * Revisão que a partida terá quando a fila local for confirmada: a do servidor mais as operações próprias ainda
+     * pendentes. Confirmar uma operação própria não muda o valor; uma alteração de outro aparelho muda.
+     * @param {string} partidaId
+     */
+    revisaoEsperada(partidaId) {
+      return revisaoEsperadaDe(buscarPartida(partidaId));
+    },
+
+    /**
+     * `revBase` é a `revisaoEsperada` com que a folha de edição abriu: se a partida mudou desde então, nada é enfileirado.
      * @param {string} partidaId @param {any} mudancas @param {{ revBase?: number }} [opcoes]
      */
     async editar(partidaId, mudancas, { revBase } = {}) {
       exigirAberto();
       const partida = buscarPartida(partidaId);
-      // Revisão 0 é criação ainda não confirmada: o servidor atribui a revisão 1 sem que outro aparelho tenha alterado.
-      if (revBase && revBase !== partida.rev) {
+      if (revBase !== undefined && revBase !== revisaoEsperadaDe(partida)) {
         throw new ErroLocal('CONFLITO_REVISAO', 'Partida alterada em outro aparelho. Valores atualizados.');
       }
       const corpo = prepararEdicao(partida, mudancas, contexto());
