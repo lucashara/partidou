@@ -111,6 +111,7 @@ export function criarApp(ctx) {
   function responderErro(res, e, registroDaRequisicao) {
     if (e instanceof ErroApp && e.codigo === CLIENTE_DESCONECTOU) {
       registro.info('cliente_desconectou', { rota: registroDaRequisicao.rota });
+      res.statusCode = 499;
       res.destroy();
       return;
     }

@@ -171,7 +171,6 @@ describe('lançamento de partidas', () => {
       [{ jogadaEm: 'ontem' }, 'jogadaEm'],
       [{ jogadaEm: 1.5 }, 'jogadaEm'],
       [{ jogadaEm: Date.UTC(1999, 11, 31) }, 'jogadaEm'],
-      [{ jogadaEm: s.relogio.agora() + 31 * 24 * 3600_000 }, 'jogadaEm'],
       [{ id: 'curto' }, 'id'],
       [{ id: 'com espaço no identificador!' }, 'id'],
       [{ penaltis: 'sim' }, 'penaltis'],
@@ -195,12 +194,15 @@ describe('lançamento de partidas', () => {
     const adiantado = await s.lancar(dono.token, id, { jogadaEm: agora + 2 * 24 * 3600_000 });
     assert.equal(adiantado.status, 201);
     assert.equal(adiantado.corpo.partida.jogadaEm, agora);
+    const muitoAdiantado = await s.lancar(dono.token, id, { jogadaEm: agora + 40 * 24 * 3600_000 });
+    assert.equal(muitoAdiantado.status, 201, 'relógio errado por semanas não perde o lançamento');
+    assert.equal(muitoAdiantado.corpo.partida.jogadaEm, agora);
     const margem = await s.lancar(dono.token, id, { jogadaEm: agora + 4 * 60_000 });
     assert.equal(margem.corpo.partida.jogadaEm, agora + 4 * 60_000, 'dentro dos 5 minutos vale como veio');
     const atrasado = await s.lancar(dono.token, id, { jogadaEm: agora - 2 * 24 * 3600_000 });
     assert.equal(atrasado.corpo.partida.jogadaEm, agora - 2 * 24 * 3600_000);
     const absurdo = await s.lancar(dono.token, id, { jogadaEm: agora + 400 * 24 * 3600_000 });
-    assert.equal(absurdo.status, 400);
+    assert.equal(absurdo.corpo.partida.jogadaEm, agora, 'qualquer data futura vira a hora do servidor');
   });
 
   test('sem id nem data, o servidor gera os dois', async () => {

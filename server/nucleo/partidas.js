@@ -11,7 +11,6 @@ import { gerarIdUuid } from './tokens.js';
 const JOGADA_MINIMA_MS = Date.UTC(2000, 0, 1);
 // Até 5 minutos à frente vale como veio; além disso o relógio do aparelho está errado e vale a hora do servidor.
 const JOGADA_TOLERANCIA_MS = 5 * 60_000;
-const JOGADA_LIMITE_MS = 30 * 24 * 3600_000;
 
 /**
  * @param {import("../tipos.js").Banco} banco
@@ -44,7 +43,7 @@ function lerModalidade(valor) {
  */
 function lerJogadaEm(valor, agora) {
   if (valor === undefined || valor === null) return agora;
-  if (!Number.isInteger(valor) || valor < JOGADA_MINIMA_MS || valor > agora + JOGADA_LIMITE_MS) {
+  if (!Number.isInteger(valor) || valor < JOGADA_MINIMA_MS) {
     throw requisicaoInvalida('Data da partida fora do intervalo permitido.', 'jogadaEm');
   }
   return valor > agora + JOGADA_TOLERANCIA_MS ? agora : valor;
