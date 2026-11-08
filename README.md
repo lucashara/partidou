@@ -11,7 +11,7 @@ Aplicativo web instalável (PWA) para registrar o resultado de partidas entre am
 - Lançar, editar, excluir e desfazer, com histórico de quem lançou e de quem alterou.
 - Estatísticas: jogos, vitórias, empates, derrotas, gols pró e contra, saldo, maior diferença e confrontos. Pênaltis não entram nos gols.
 - Funciona sem rede: abre, lê e lança offline, e sincroniza depois sem duplicar partidas.
-- Tema claro e escuro, mobile primeiro, cartão de resumo em imagem para compartilhar.
+- Tema escuro de estádio com placar de LED, mobile primeiro, cartão de resumo em imagem para compartilhar.
 
 ## Executar
 

@@ -74,7 +74,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
         class: 'campo-entrada',
         type: 'text',
         maxLength: LIMITES.competidor,
-        placeholder: 'Jogador ou time',
+        placeholder: 'Nome',
         role: 'combobox',
         autocomplete: 'off',
         autocapitalize: 'words',
@@ -165,7 +165,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
 
     const numeral = /** @type {HTMLInputElement} */ (
       h('input', {
-        class: 'numeral numeros',
+        class: 'numeral',
         type: 'text',
         inputMode: 'numeric',
         pattern: '[0-9]*',
@@ -209,10 +209,10 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
     );
     const celula = h(
       'div',
-      { class: 'celula lado' },
+      { class: 'celula lado', 'data-lado': chave },
       h('span', { class: 'celula-rotulo' }, rotulo),
       h('div', { class: 'lado-nome' }, entrada, lista),
-      numeral,
+      h('div', { class: 'led' }, numeral),
       h('div', { class: 'passos' }, menos, mais),
     );
     return { celula, entrada, numeral };
@@ -250,7 +250,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
       const rotulo = chave === 'a' ? 'Lado A' : 'Lado B';
       const numeral = /** @type {HTMLInputElement} */ (
         h('input', {
-          class: 'numeral numeral-pequeno numeros',
+          class: 'numeral',
           type: 'text',
           inputMode: 'numeric',
           pattern: '[0-9]*',
@@ -280,8 +280,8 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
         );
       return h(
         'div',
-        { class: 'celula lado' },
-        numeral,
+        { class: 'celula lado', 'data-lado': chave },
+        h('div', { class: 'led led-pequeno' }, numeral),
         h('div', { class: 'passos' }, passo(-1, 'menos'), passo(1, 'mais')),
       );
     });

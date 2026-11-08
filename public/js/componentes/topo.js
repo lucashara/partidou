@@ -12,6 +12,7 @@ export function desenharTopo({ titulo, marca = false, voltarPara, extras = [] })
   trocarFilhos(
     topo,
     voltarPara && h('a', { class: 'btn-icone', href: voltarPara, 'aria-label': 'Voltar' }, icone('voltar')),
+    marca && h('span', { class: 'topo-bola' }, icone('bola', { tamanho: 26 })),
     h(marca ? 'p' : 'h1', { class: `topo-titulo${marca ? ' topo-marca' : ''}` }, titulo),
     h(
       'div',

@@ -1,4 +1,4 @@
-/* Tokens do Partidou. Súmula: folha de formulário com campos de traço fino, tinta azul de esferográfica e cartão amarelo como ação. */
+/* Tokens do Partidou. Tema único: estádio à noite, com gramado escuro e placar de LED âmbar. */
 
 @font-face {
   font-family: Barlow;
@@ -36,41 +36,59 @@
   font-display: swap;
   src: url("/fonts/barlow-condensed-latin-800-normal.woff2") format("woff2");
 }
+@font-face {
+  font-family: Doto;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/doto-latin-900-normal.woff2") format("woff2");
+}
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
-  /* Superfícies */
-  --papel: #f2f4f8;
-  --folha: #ffffff;
-  --campo: #e9edf5;
-  --traco: #d3d9e4;
-  --traco-forte: #7a869d;
+  /* Superfícies: do fundo do estádio ao cartão */
+  --base: #06120b;
+  --papel: #0a1c12;
+  --folha: #0e2619;
+  --campo: #133121;
+  --traco: rgb(228 245 234 / 0.12);
+  --traco-forte: #5f7a69;
 
-  /* Texto */
-  --texto: #0e1526;
-  --texto-2: #444f66;
-  --texto-3: #586379;
+  /* Texto: contraste mínimo de 4,5:1 sobre as superfícies */
+  --texto: #ecf4ee;
+  --texto-2: #a9bdaf;
+  --texto-3: #86a08f;
 
-  /* Tinta (placar, seleção, vencedor) e cartões (ação e perigo) */
-  --tinta: #1b3db5;
-  --tinta-suave: #e6ebfc;
-  --cartao: #ffd60a;
-  --cartao-texto: #0e1526;
-  --cartao-borda: #b39500;
-  --erro: #c0192c;
-  --erro-suave: #fbe9eb;
-  --texto-sobre-erro: #ffffff;
-  --ok: #0c7040;
-  --alerta: #8a5a00;
+  /* Placar de LED: destaque, seleção e ação principal */
+  --led: #ffb21e;
+  --led-apagado: rgb(255 178 30 / 0.09);
+  --carcaca: #040a06;
+  --tinta: var(--led);
+  --tinta-suave: rgb(255 178 30 / 0.14);
+  --cartao: var(--led);
+  --cartao-texto: #1c1300;
+  --cartao-borda: var(--led);
+
+  /* Os dois lados de uma partida */
+  --lado-a: #4db3ff;
+  --lado-b: #ff6b6f;
+  --empate: #bccabf;
+
+  /* Estados */
+  --erro: #ff8585;
+  --erro-suave: rgb(255 133 133 / 0.12);
+  --texto-sobre-erro: #1a0a0e;
+  --ok: #52e08a;
+  --alerta: #ffb21e;
 
   /* Elevação: só para camadas flutuantes */
-  --sombra-flutuante: 0 12px 32px -10px rgb(14 21 38 / 0.28), 0 2px 6px rgb(14 21 38 / 0.08);
-  --fundo-modal: rgb(8 12 24 / 0.5);
+  --sombra-flutuante: 0 14px 36px -8px rgb(0 0 0 / 0.65), 0 2px 6px rgb(0 0 0 / 0.4);
+  --fundo-modal: rgb(2 8 5 / 0.72);
 
   /* Tipografia */
   --fonte: Barlow, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --fonte-numeros: "Barlow Condensed", Barlow, system-ui, sans-serif;
+  --fonte-led: Doto, "Barlow Condensed", monospace;
 
   /* Espaço (grade de 4) e raios */
   --e-1: 4px;
@@ -79,13 +97,12 @@
   --e-4: 16px;
   --e-5: 24px;
   --e-6: 32px;
-  --e-7: 48px;
   --raio-1: 6px;
-  --raio-2: 10px;
-  --raio-3: 16px;
+  --raio-2: 12px;
+  --raio-3: 18px;
 
   /* Movimento */
-  --saida: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --saida: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Geometria do app */
   --largura-coluna: 640px;
@@ -93,27 +110,4 @@
   --altura-abas: 60px;
   --seguro-topo: env(safe-area-inset-top, 0px);
   --seguro-base: env(safe-area-inset-bottom, 0px);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) {
-    --papel: #080c18;
-    --folha: #0f1628;
-    --campo: #17203a;
-    --traco: #22304f;
-    --traco-forte: #5b6b90;
-    --texto: #edf0f8;
-    --texto-2: #b0bad0;
-    --texto-3: #8f9bb5;
-    --tinta: #a3b8ff;
-    --tinta-suave: #18244a;
-    --cartao-borda: #ffd60a;
-    --erro: #ff7b8b;
-    --erro-suave: #3a1620;
-    --texto-sobre-erro: #1a0a0e;
-    --ok: #4fd18b;
-    --alerta: #f2b84b;
-    --sombra-flutuante: 0 14px 36px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
-    --fundo-modal: rgb(2 4 10 / 0.7);
-  }
 }

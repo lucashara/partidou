@@ -1,10 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1b3db5"/>
-  <rect x="330" y="116" width="60" height="96" rx="10" fill="#ffd60a" transform="rotate(10 360 164)"/>
-  <rect x="116" y="170" width="134" height="172" rx="18" fill="#fff"/>
-  <rect x="262" y="170" width="134" height="172" rx="18" fill="#fff"/>
-  <g fill="none" stroke="#1b3db5" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
-    <path transform="translate(153 206)" d="M4 26C4 -6 58 -6 58 28C58 52 4 74 4 100H58"/>
-    <path transform="translate(299 206)" d="M14 30L40 4V100"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="holofote" cx="50%" cy="-8%" r="95%"><stop offset="0" stop-color="#fff4ce" stop-opacity="0.16"/><stop offset="0.7" stop-color="#fff4ce" stop-opacity="0"/></radialGradient>
+    <filter id="brilho" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0a1c12"/>
+  <rect width="512" height="512" rx="112" fill="url(#holofote)"/>
+  <g transform="translate(256 256) scale(1) translate(-256 -256)">
+    <g fill="none" stroke="#e4f5ea" stroke-opacity="0.16" stroke-width="6"><line x1="256" y1="70" x2="256" y2="442"/><circle cx="256" cy="256" r="150"/></g>
+    <g stroke-linecap="round" stroke="#ffb21e" stroke-opacity="0.12" stroke-width="22" fill="none"><line x1="130" y1="172" x2="214" y2="172"/><line x1="214" y1="172" x2="214" y2="256"/><line x1="130" y1="256" x2="214" y2="256"/><line x1="130" y1="256" x2="130" y2="340"/><line x1="130" y1="340" x2="214" y2="340"/><line x1="130" y1="172" x2="130" y2="256"/><line x1="214" y1="256" x2="214" y2="340"/><line x1="298" y1="172" x2="382" y2="172"/><line x1="382" y1="172" x2="382" y2="256"/><line x1="298" y1="256" x2="382" y2="256"/><line x1="298" y1="256" x2="298" y2="340"/><line x1="298" y1="340" x2="382" y2="340"/><line x1="298" y1="172" x2="298" y2="256"/><line x1="382" y1="256" x2="382" y2="340"/></g>
+    <g stroke-linecap="round" stroke="#ffb21e" stroke-width="22" fill="none" filter="url(#brilho)" opacity="0.65"><line x1="130" y1="172" x2="214" y2="172"/><line x1="214" y1="172" x2="214" y2="256"/><line x1="130" y1="256" x2="214" y2="256"/><line x1="130" y1="256" x2="130" y2="340"/><line x1="130" y1="340" x2="214" y2="340"/><line x1="382" y1="172" x2="382" y2="256"/><line x1="382" y1="256" x2="382" y2="340"/></g>
+    <g stroke-linecap="round" stroke="#ffb21e" stroke-width="22" fill="none"><line x1="130" y1="172" x2="214" y2="172"/><line x1="214" y1="172" x2="214" y2="256"/><line x1="130" y1="256" x2="214" y2="256"/><line x1="130" y1="256" x2="130" y2="340"/><line x1="130" y1="340" x2="214" y2="340"/><line x1="382" y1="172" x2="382" y2="256"/><line x1="382" y1="256" x2="382" y2="340"/></g>
   </g>
 </svg>

@@ -7,13 +7,17 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: var(--papel);
+  background: var(--base);
 }
 
+/* Estádio à noite: holofote no alto e faixas de gramado, sem imagem e sem custo de rede. */
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--papel);
+  background:
+    radial-gradient(120% 52% at 50% -8%, rgb(255 255 255 / 0.09), transparent 62%),
+    repeating-linear-gradient(90deg, transparent 0 44px, rgb(255 255 255 / 0.02) 44px 88px),
+    linear-gradient(180deg, var(--papel), var(--base));
   color: var(--texto);
   font: 400 1rem / 1.45 var(--fonte);
   -webkit-font-smoothing: antialiased;
@@ -69,6 +73,11 @@ ol {
   border-radius: var(--raio-1);
 }
 
+/* O <main> recebe foco programático a cada troca de tela, só para o leitor de tela anunciar; anel ali é ruído. */
+.principal:focus-visible {
+  outline: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -104,8 +113,10 @@ ol {
   gap: var(--e-2);
   height: calc(var(--altura-topo) + var(--seguro-topo));
   padding: var(--seguro-topo) var(--e-3) 0 var(--e-4);
-  background: var(--papel);
+  background: color-mix(in srgb, var(--papel) 82%, transparent);
   border-bottom: 1px solid var(--traco);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .topo-titulo {

@@ -10,10 +10,7 @@ const ETAPAS = [
     'Convidar o grupo',
     'O link de convite abre a resenha direto. Quem entra escolhe um apelido, sem cadastro nem senha.',
   ],
-  [
-    'Registrar o resultado',
-    'Informar os dois lados, ajustar o placar e lançar. Funciona sem internet e sincroniza depois.',
-  ],
+  ['Registrar o resultado', 'Informar os dois lados, ajustar o placar e lançar.'],
   [
     'Consultar',
     'O histórico organiza as partidas por dia. Geral reúne a classificação, os confrontos e a maior diferença.',
