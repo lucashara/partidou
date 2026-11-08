@@ -12,7 +12,7 @@ Mobile primeiro, com coluna única de até 640 px centralizada no desktop. A lin
 | Placar | Dois lados com nome livre e sugestões dos nomes já usados, placar em botões e digitação direta, pênaltis quando há empate, modalidade opcional e Lançar partida. Abaixo, as últimas partidas |
 | Histórico | Partidas por dia, da mais recente para a mais antiga. Tocar numa partida abre a edição, com autoria, Salvar e Excluir |
 | Geral | Classificação por vitórias e saldo de gols, maior diferença, confrontos e o cartão de resumo para compartilhar |
-| Ajustes | Nome da resenha, convite, participantes, código de transferência, chave de recuperação, sair do aparelho e exclusão da resenha |
+| Ajustes | Nome da resenha, convite, participantes, código de transferência, chave de recuperação, remoção do aparelho e exclusão da resenha |
 
 A primeira visita abre uma apresentação curta; o botão `?` do cabeçalho a reabre.
 
@@ -21,7 +21,7 @@ A primeira visita abre uma apresentação curta; o botão `?` do cabeçalho a re
 - O botão Lançar partida fica indisponível enquanto faltam os dois lados, os lados são iguais ou o placar não foi definido. Um 0 x 0 só é aceito depois de Registrar 0 x 0 ou de digitar o zero.
 - Pênaltis aparecem apenas com placar empatado, são guardados à parte e nunca somados aos gols. Não podem terminar empatados.
 - Partida igual à lançada há instantes pede confirmação antes de duplicar.
-- Depois de lançar, o aviso no topo oferece Desfazer por 6 segundos.
+- Depois de lançar, o aviso no topo oferece Desfazer por 6 segundos; ao sair da resenha ele deixa de aparecer.
 - Os valores seguem o que o usuário digita, sem limite de regra oficial (até 999).
 
 ## Tema, tipografia e movimento

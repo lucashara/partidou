@@ -89,7 +89,7 @@ export function criarAbaPlacar({ resenhaId, controlador, abrirPartida, irHistori
         'Placar não definido. ',
         h(
           'button',
-          { type: 'button', class: 'btn btn-texto', onClick: () => editor.confirmarZeroZero() },
+          { type: 'button', class: 'btn btn-compacto', onClick: () => editor.confirmarZeroZero() },
           'Registrar 0 x 0',
         ),
       );
@@ -148,7 +148,7 @@ export function criarAbaPlacar({ resenhaId, controlador, abrirPartida, irHistori
         { class: 'secao-titulo' },
         'Últimas partidas',
         ultimas.length > 0 &&
-          h('button', { type: 'button', class: 'btn btn-texto', onClick: irHistorico }, 'Ver histórico'),
+          h('button', { type: 'button', class: 'btn btn-compacto', onClick: irHistorico }, 'Ver histórico'),
       ),
       ultimas.length === 0
         ? h(

@@ -230,10 +230,36 @@
 
 .caixa input {
   flex: none;
+  display: grid;
+  place-items: center;
   width: 24px;
   height: 24px;
   margin: 0;
-  accent-color: var(--tinta);
+  border: 2px solid var(--traco-forte);
+  border-radius: var(--raio-1);
+  background: var(--folha);
+  appearance: none;
+}
+
+.caixa input:checked {
+  border-color: var(--tinta);
+  background: var(--tinta);
+}
+
+/* A marca usa a cor do papel: contrasta com a tinta nos dois temas, o que a marca nativa branca não faz no escuro. */
+.caixa input:checked::after {
+  content: "";
+  width: 6px;
+  height: 12px;
+  margin-top: -2px;
+  border: solid var(--papel);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.caixa input:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 2px;
 }
 
 .acao-lancar-dica {

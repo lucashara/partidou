@@ -268,7 +268,6 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
           titulo: rotulo,
           texto: texto + pendentesAviso(),
           rotuloConfirmar: rotulo,
-          perigo: true,
         });
         if (!ok) return;
         await executar(
@@ -341,8 +340,14 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
           exibicao: formatarCodigo(chave, 5),
           apoio: 'Exibida somente agora. A chave anterior deixou de valer. Guardar em local seguro.',
         }),
+    );
+  }
+
+  function secaoSaida(criador) {
+    return secao(
+      'Saída',
       botaoDeSaida(
-        'Sair deste aparelho',
+        'Remover do aparelho',
         'A resenha deixa de aparecer neste aparelho. Para voltar será preciso um convite ou, para o criador, a chave de recuperação.',
         () => controlador.admin.sairDesteAparelho(),
         'Resenha removida deste aparelho.',
@@ -389,6 +394,7 @@ export function criarAbaAjustes({ controlador, aoEncerrar }) {
       criador && secaoConvite(),
       secaoParticipantes(criador),
       secaoAcesso(criador),
+      secaoSaida(criador),
       criador && secaoExclusao(),
       h('p', { class: 'rodape-app' }, 'Partidou · Jogou? Registrou.'),
     );

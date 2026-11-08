@@ -305,7 +305,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
             'button',
             {
               type: 'button',
-              class: 'btn btn-texto',
+              class: 'btn btn-compacto',
               onClick: () => {
                 estado.penaltis = { a: 0, b: 0 };
                 renderPenaltis();
@@ -330,7 +330,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
             'button',
             {
               type: 'button',
-              class: 'btn btn-texto',
+              class: 'btn btn-compacto',
               onClick: () => {
                 estado.penaltis = null;
                 renderPenaltis();

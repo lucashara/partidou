@@ -3,7 +3,7 @@ import { criarAbaAjustes } from '../abas/ajustes.js';
 import { criarAbaGeral } from '../abas/geral.js';
 import { criarAbaHistorico } from '../abas/historico.js';
 import { criarAbaPlacar } from '../abas/placar.js';
-import { avisar } from '../componentes/aviso.js';
+import { avisar, fecharAvisoComAcao } from '../componentes/aviso.js';
 import { confirmar } from '../componentes/folha.js';
 import { criarIndicadorSync, desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
@@ -262,6 +262,7 @@ export function telaResenha(raiz, rota) {
       if (restantes <= 0) {
         usos.delete(id);
         controlador?.fechar();
+        fecharAvisoComAcao();
       } else {
         usos.set(id, restantes);
       }

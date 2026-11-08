@@ -1,11 +1,12 @@
 // Aviso temporário no topo da tela, com ação opcional (por exemplo, Desfazer). Um por vez.
 import { h } from '../util.js';
 
-/** @type {{ el: HTMLElement, fechar: () => void } | null} */
+/** @type {{ el: HTMLElement, fechar: () => void, comAcao: boolean } | null} */
 let atual = null;
 
-export function fecharAviso() {
-  atual?.fechar();
+/** Aviso com ação (Desfazer) depende da resenha aberta: ao sair dela a ação deixa de funcionar e o aviso some. */
+export function fecharAvisoComAcao() {
+  if (atual?.comAcao) atual.fechar();
 }
 
 const comOuvinte = new WeakSet();
@@ -66,6 +67,6 @@ export function avisar({ texto, tom, acao, duracaoMs = 5000 }) {
   );
   raiz.append(el);
   temporizador = setTimeout(fechar, duracaoMs);
-  atual = { el, fechar };
+  atual = { el, fechar, comAcao: Boolean(acao) };
   return { fechar };
 }
