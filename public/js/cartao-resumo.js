@@ -1,158 +1,337 @@
-// Cartão de resumo em PNG (1080 x 1350), no estilo da súmula. Cores fixas do tema claro: a imagem sai igual em qualquer aparelho.
+// Cartão de resumo em PNG (1080 x 1350): placar de LED, classificação e últimas partidas.
+// A geometria vem de cartao-plano.js; aqui só se desenha, com as cores e fontes dos tokens do app.
+import { ALTURA, LARGURA, MARGEM, planejarCartao } from './cartao-plano.js';
 import { sinal } from './formatos.js';
+import { CAMINHOS } from './icones.js';
 
-const LARGURA = 1080;
-const ALTURA = 1350;
-// Valores dos tokens claros de tokens.css (canvas não lê variáveis CSS).
-const COR = {
-  papel: '#f2f4f8',
-  folha: '#ffffff',
-  traco: '#d3d9e4',
-  tracoForte: '#7a869d',
-  texto: '#0e1526',
-  texto3: '#586379',
-  tinta: '#1b3db5',
-  campo: '#e9edf5',
+const FONTES_NECESSARIAS = [
+  '800 56px "Barlow Condensed"',
+  '700 34px "Barlow Condensed"',
+  '500 28px "Barlow"',
+  '600 28px "Barlow"',
+  '900 120px "Doto"',
+];
+const padrao = {
+  '--base': '#06120b',
+  '--papel': '#0a1c12',
+  '--campo': '#133121',
+  '--traco': 'rgb(228 245 234 / 0.12)',
+  '--traco-forte': '#5f7a69',
+  '--texto': '#ecf4ee',
+  '--texto-2': '#a9bdaf',
+  '--texto-3': '#86a08f',
+  '--led': '#ffb21e',
+  '--carcaca': '#040a06',
+  '--lado-a': '#4db3ff',
+  '--lado-b': '#ff6b6f',
+  '--empate': '#bccabf',
+  '--fonte': 'Barlow, sans-serif',
+  '--fonte-numeros': '"Barlow Condensed", Barlow, sans-serif',
+  '--fonte-led': 'Doto, "Barlow Condensed", monospace',
 };
-const NUMEROS = '"Barlow Condensed", Barlow, sans-serif';
-const TEXTO = 'Barlow, sans-serif';
 
-function cortar(ctx, texto, largura) {
-  if (ctx.measureText(texto).width <= largura) return texto;
-  let t = texto;
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > largura) t = t.slice(0, -1);
-  return `${t.trimEnd()}…`;
+/** Fonte que falha em carregar cai na pilha do token: o cartão sai com a fonte do sistema em vez de não sair. */
+async function carregarFontes() {
+  await Promise.allSettled(FONTES_NECESSARIAS.map((f) => document.fonts.load(f, '0123456789×AaVvEeDd')));
 }
 
-function retangulo(ctx, x, y, l, a, raio) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, l, a, raio);
+function lerTokens() {
+  const estilo = getComputedStyle(document.documentElement);
+  return Object.fromEntries(
+    Object.entries(padrao).map(([nome, valor]) => [nome, estilo.getPropertyValue(nome).trim() || valor]),
+  );
 }
 
 /**
- * @param {{ nomeResenha: string, totais: { partidas: number, golsMarcados: number }, tabela: any[], ultimas: { a: string, b: string, placarA: number, placarB: number, penaltis: string | null }[], endereco: string }} dados
+ * Escreve o texto reduzindo o corpo até caber em `larguraMax`; com `cortar`, mantém o corpo e corta com reticências.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} conteudo
+ * @param {number} x
+ * @param {number} y
+ * @param {{ fonte: string, tamanho: number, peso: number, cor: string, alinhar?: CanvasTextAlign, larguraMax?: number, cortar?: boolean }} opcoes
+ */
+function texto(
+  ctx,
+  conteudo,
+  x,
+  y,
+  { fonte, tamanho, peso, cor, alinhar = 'left', larguraMax = Infinity, cortar = false },
+) {
+  let corpo = tamanho;
+  ctx.font = `${peso} ${corpo}px ${fonte}`;
+  while (ctx.measureText(conteudo).width > larguraMax && corpo > (cortar ? tamanho : 16)) {
+    corpo -= 1;
+    ctx.font = `${peso} ${corpo}px ${fonte}`;
+  }
+  let saida = conteudo;
+  if (cortar) {
+    while (saida.length > 1 && ctx.measureText(saida).width > larguraMax) saida = `${saida.slice(0, -2).trimEnd()}…`;
+  }
+  ctx.fillStyle = cor;
+  ctx.textAlign = alinhar;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(saida, x, y);
+}
+
+// arcTo em vez de roundRect: este só existe a partir do Safari 16.
+function retanguloArredondado(ctx, x, y, largura, altura, raio) {
+  const r = Math.min(raio, largura / 2, altura / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + largura, y, x + largura, y + altura, r);
+  ctx.arcTo(x + largura, y + altura, x, y + altura, r);
+  ctx.arcTo(x, y + altura, x, y, r);
+  ctx.arcTo(x, y, x + largura, y, r);
+  ctx.closePath();
+}
+
+function fundo(ctx, c) {
+  const gradiente = ctx.createLinearGradient(0, 0, 0, ALTURA);
+  gradiente.addColorStop(0, c['--papel']);
+  gradiente.addColorStop(1, c['--base']);
+  ctx.fillStyle = gradiente;
+  ctx.fillRect(0, 0, LARGURA, ALTURA);
+  ctx.fillStyle = 'rgb(255 255 255 / 0.02)';
+  for (let x = 44; x < LARGURA; x += 88) ctx.fillRect(x, 0, 44, ALTURA);
+  const holofote = ctx.createRadialGradient(LARGURA / 2, -60, 40, LARGURA / 2, -60, 760);
+  holofote.addColorStop(0, 'rgb(255 255 255 / 0.12)');
+  holofote.addColorStop(1, 'rgb(255 255 255 / 0)');
+  ctx.fillStyle = holofote;
+  ctx.fillRect(0, 0, LARGURA, ALTURA);
+}
+
+function cabecalho(ctx, c) {
+  ctx.save();
+  ctx.translate(MARGEM, 62);
+  ctx.scale(2.2, 2.2);
+  ctx.strokeStyle = c['--led'];
+  ctx.shadowColor = c['--led'];
+  ctx.shadowBlur = 10;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke(new Path2D(CAMINHOS.bola));
+  ctx.restore();
+  texto(ctx, 'Partidou', MARGEM + 68, 108, { fonte: c['--fonte-numeros'], tamanho: 56, peso: 800, cor: c['--texto'] });
+  texto(ctx, 'Jogou? Registrou.', LARGURA - MARGEM, 104, {
+    fonte: c['--fonte'],
+    tamanho: 30,
+    peso: 500,
+    cor: c['--texto-2'],
+    alinhar: 'right',
+  });
+}
+
+function painelLed(ctx, c, plano, dados) {
+  const { y, altura } = plano.painel;
+  const largura = LARGURA - 2 * MARGEM;
+  texto(ctx, dados.nomeResenha, MARGEM, 236, {
+    fonte: c['--fonte-numeros'],
+    tamanho: 96,
+    peso: 800,
+    cor: c['--texto'],
+    larguraMax: largura,
+  });
+  retanguloArredondado(ctx, MARGEM, y, largura, altura, 28);
+  ctx.fillStyle = c['--carcaca'];
+  ctx.fill();
+  ctx.strokeStyle = c['--traco-forte'];
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const { partidas, golsMarcados } = dados.totais;
+  const media =
+    partidas > 0
+      ? (golsMarcados / partidas).toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })
+      : '0';
+  const celulas = [
+    [String(partidas), partidas === 1 ? 'Partida' : 'Partidas'],
+    [String(golsMarcados), golsMarcados === 1 ? 'Gol' : 'Gols'],
+    [media, 'Gols por partida'],
+  ];
+  const passo = largura / celulas.length;
+  for (const [i, [valor, rotulo]] of celulas.entries()) {
+    const centro = MARGEM + passo * (i + 0.5);
+    if (i > 0) {
+      ctx.fillStyle = c['--traco'];
+      ctx.fillRect(MARGEM + passo * i - 1, y + 28, 2, altura - 56);
+    }
+    ctx.save();
+    ctx.shadowColor = c['--led'];
+    ctx.shadowBlur = 30;
+    texto(ctx, valor, centro, y + 104, {
+      fonte: c['--fonte-led'],
+      tamanho: 104,
+      peso: 900,
+      cor: c['--led'],
+      alinhar: 'center',
+      larguraMax: passo - 40,
+    });
+    ctx.restore();
+    texto(ctx, rotulo, centro, y + altura - 28, {
+      fonte: c['--fonte'],
+      tamanho: 28,
+      peso: 500,
+      cor: c['--texto-2'],
+      alinhar: 'center',
+    });
+  }
+}
+
+function secaoTitulo(ctx, c, y, titulo, meta) {
+  texto(ctx, titulo, MARGEM, y, { fonte: c['--fonte-numeros'], tamanho: 44, peso: 800, cor: c['--texto'] });
+  if (meta)
+    texto(ctx, meta, LARGURA - MARGEM, y - 2, {
+      fonte: c['--fonte'],
+      tamanho: 28,
+      peso: 500,
+      cor: c['--texto-2'],
+      alinhar: 'right',
+    });
+}
+
+/** @type {[string, number][]} */
+const COLUNAS = [
+  ['J', 628],
+  ['V', 712],
+  ['E', 796],
+  ['D', 880],
+  ['SG', 1008],
+];
+
+function classificacao(ctx, c, plano, tabela) {
+  const p = plano.tabela;
+  if (!p) return;
+  const total = tabela.length;
+  secaoTitulo(ctx, c, p.tituloY, 'Classificação', total > p.linhas ? `${p.linhas} de ${total}` : '');
+  const largura = LARGURA - 2 * MARGEM;
+  retanguloArredondado(ctx, MARGEM, p.cabecalho.y, largura, p.cabecalho.altura, 12);
+  ctx.fillStyle = c['--campo'];
+  ctx.fill();
+  const yCab = p.cabecalho.y + 31;
+  texto(ctx, 'Lado', MARGEM + 64, yCab, { fonte: c['--fonte'], tamanho: 26, peso: 600, cor: c['--texto-2'] });
+  for (const [rotulo, x] of COLUNAS)
+    texto(ctx, rotulo, x, yCab, { fonte: c['--fonte'], tamanho: 26, peso: 600, cor: c['--texto-2'], alinhar: 'right' });
+
+  for (const [i, linha] of tabela.slice(0, p.linhas).entries()) {
+    const y = p.primeiraY + i * p.passo;
+    if (i === 0) {
+      ctx.fillStyle = 'rgb(255 178 30 / 0.09)';
+      ctx.fillRect(MARGEM, y - 34, largura, p.passo - 2);
+    }
+    texto(ctx, String(i + 1), MARGEM + 22, y, {
+      fonte: c['--fonte-numeros'],
+      tamanho: 36,
+      peso: 700,
+      cor: i === 0 ? c['--led'] : c['--texto-3'],
+      alinhar: 'center',
+    });
+    texto(ctx, linha.nome, MARGEM + 64, y, {
+      fonte: c['--fonte-numeros'],
+      tamanho: 40,
+      peso: 700,
+      cor: c['--texto'],
+      larguraMax: 450,
+      cortar: true,
+    });
+    const valores = [linha.partidas, linha.vitorias, linha.empates, linha.derrotas, sinal(linha.saldo)];
+    for (const [k, [, x]] of COLUNAS.entries()) {
+      texto(ctx, String(valores[k]), x, y, {
+        fonte: c['--fonte-numeros'],
+        tamanho: 38,
+        peso: 700,
+        cor: k === 4 ? c['--led'] : c['--texto'],
+        alinhar: 'right',
+      });
+    }
+    if (i < p.linhas - 1) {
+      ctx.fillStyle = c['--traco'];
+      ctx.fillRect(MARGEM, y + 16, largura, 1);
+    }
+  }
+}
+
+function ultimasPartidas(ctx, c, plano, partidas) {
+  const p = plano.partidas;
+  if (!p) return;
+  secaoTitulo(ctx, c, p.tituloY, 'Últimas partidas', p.omitidas > 0 ? `${p.itens.length} de ${partidas.length}` : '');
+  const largura = LARGURA - 2 * MARGEM;
+  for (const item of p.itens) {
+    const partida = partidas[item.indice];
+    const vencedor = partida.vencedor;
+    const corLado = { a: c['--lado-a'], b: c['--lado-b'] };
+    if (item.indice > 0) {
+      ctx.fillStyle = c['--traco'];
+      ctx.fillRect(MARGEM, item.topo, largura, 1);
+    }
+    const estilo = (lado) => ({
+      fonte: c['--fonte-numeros'],
+      tamanho: 38,
+      peso: vencedor === lado ? 800 : 600,
+      cor: vencedor === lado ? corLado[lado] : c['--texto-2'],
+      larguraMax: 372,
+      cortar: true,
+    });
+    texto(ctx, partida.a, LARGURA / 2 - 104, item.baseline, { ...estilo('a'), alinhar: 'right' });
+    texto(ctx, partida.b, LARGURA / 2 + 104, item.baseline, { ...estilo('b'), alinhar: 'left' });
+    ctx.save();
+    ctx.shadowColor = c['--led'];
+    ctx.shadowBlur = 14;
+    texto(ctx, `${partida.placarA} × ${partida.placarB}`, LARGURA / 2, item.baseline + 2, {
+      fonte: c['--fonte-numeros'],
+      tamanho: 52,
+      peso: 800,
+      cor: c['--led'],
+      alinhar: 'center',
+    });
+    ctx.restore();
+    if (partida.penaltis) {
+      texto(ctx, `Pênaltis ${partida.penaltis}`, LARGURA / 2, item.baseline + 30, {
+        fonte: c['--fonte'],
+        tamanho: 24,
+        peso: 500,
+        cor: c['--texto-2'],
+        alinhar: 'center',
+      });
+    }
+  }
+}
+
+function rodape(ctx, c, plano, endereco) {
+  const { y } = plano.rodape;
+  ctx.fillStyle = c['--traco'];
+  ctx.fillRect(MARGEM, y, LARGURA - 2 * MARGEM, 1);
+  texto(ctx, endereco, LARGURA / 2, y + 58, {
+    fonte: c['--fonte'],
+    tamanho: 30,
+    peso: 600,
+    cor: c['--texto-2'],
+    alinhar: 'center',
+  });
+}
+
+/**
+ * @param {{ nomeResenha: string, totais: { partidas: number, golsMarcados: number }, tabela: any[], ultimas: { a: string, b: string, placarA: number, placarB: number, penaltis: string | null, vencedor: 'a' | 'b' | null }[], endereco: string }} dados
  * @returns {Promise<Blob>}
  */
 export async function gerarCartao(dados) {
-  await Promise.all([
-    document.fonts.load(`800 80px ${NUMEROS}`),
-    document.fonts.load(`700 40px ${NUMEROS}`),
-    document.fonts.load(`500 32px ${TEXTO}`),
-    document.fonts.load(`600 32px ${TEXTO}`),
-  ]);
+  await carregarFontes();
   const canvas = document.createElement('canvas');
   canvas.width = LARGURA;
   canvas.height = ALTURA;
   const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
+  const c = lerTokens();
+  const plano = planejarCartao({
+    linhasTabela: dados.tabela.length,
+    partidas: dados.ultimas.map((u) => ({ penaltis: u.penaltis !== null })),
+  });
 
-  ctx.fillStyle = COR.papel;
-  ctx.fillRect(0, 0, LARGURA, ALTURA);
-  ctx.fillStyle = COR.folha;
-  ctx.strokeStyle = COR.tracoForte;
-  ctx.lineWidth = 2;
-  retangulo(ctx, 48, 48, LARGURA - 96, ALTURA - 96, 32);
-  ctx.fill();
-  ctx.stroke();
-
-  const margem = 96;
-  const largura = LARGURA - margem * 2;
-  ctx.textBaseline = 'alphabetic';
-
-  ctx.fillStyle = COR.tinta;
-  ctx.font = `800 48px ${NUMEROS}`;
-  ctx.fillText('Partidou', margem, 140);
-
-  ctx.fillStyle = COR.texto;
-  ctx.font = `800 112px ${NUMEROS}`;
-  ctx.fillText(cortar(ctx, dados.nomeResenha, largura), margem, 260);
-
-  ctx.fillStyle = COR.texto3;
-  ctx.font = `500 34px ${TEXTO}`;
-  ctx.fillText(
-    `${dados.totais.partidas} ${dados.totais.partidas === 1 ? 'partida' : 'partidas'} · ${dados.totais.golsMarcados} ${dados.totais.golsMarcados === 1 ? 'gol' : 'gols'}`,
-    margem,
-    312,
-  );
-
-  // Classificação
-  let y = 392;
-  ctx.fillStyle = COR.campo;
-  ctx.fillRect(margem - 24, y - 44, largura + 48, 64);
-  ctx.fillStyle = COR.texto3;
-  ctx.font = `600 28px ${TEXTO}`;
-  /** @type {[string, number][]} */
-  const colunas = [
-    ['J', 560],
-    ['V', 640],
-    ['E', 720],
-    ['D', 800],
-    ['SG', 912],
-  ];
-  ctx.fillText('Lado', margem + 56, y);
-  ctx.textAlign = 'right';
-  for (const [rotulo, x] of colunas) ctx.fillText(rotulo, x + 24, y);
-  ctx.textAlign = 'left';
-
-  y += 72;
-  const linhas = dados.tabela.slice(0, 6);
-  for (const [i, linha] of linhas.entries()) {
-    ctx.fillStyle = COR.texto3;
-    ctx.font = `600 34px ${TEXTO}`;
-    ctx.fillText(String(i + 1), margem, y);
-    ctx.fillStyle = COR.texto;
-    ctx.font = `700 42px ${NUMEROS}`;
-    ctx.fillText(cortar(ctx, linha.nome, 400), margem + 56, y);
-    ctx.textAlign = 'right';
-    ctx.font = `600 38px ${NUMEROS}`;
-    const valores = [linha.partidas, linha.vitorias, linha.empates, linha.derrotas, sinal(linha.saldo)];
-    for (const [k, [, x]] of colunas.entries()) {
-      ctx.fillStyle = k === 4 ? COR.tinta : COR.texto;
-      ctx.fillText(String(valores[k]), x + 24, y);
-    }
-    ctx.textAlign = 'left';
-    ctx.strokeStyle = COR.traco;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(margem - 24, y + 22);
-    ctx.lineTo(margem + largura + 24, y + 22);
-    ctx.stroke();
-    y += 68;
-  }
-
-  // Últimas partidas
-  y = Math.max(y + 48, 900);
-  ctx.fillStyle = COR.texto;
-  ctx.font = `800 44px ${NUMEROS}`;
-  ctx.fillText('Últimas partidas', margem, y);
-  y += 28;
-  for (const p of dados.ultimas.slice(0, 5)) {
-    y += 64;
-    ctx.font = `600 36px ${TEXTO}`;
-    ctx.fillStyle = COR.texto;
-    ctx.textAlign = 'right';
-    ctx.fillText(cortar(ctx, p.a, 330), margem + 380, y);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = COR.tinta;
-    ctx.font = `800 52px ${NUMEROS}`;
-    ctx.fillText(`${p.placarA} x ${p.placarB}`, LARGURA / 2, y + 4);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = COR.texto;
-    ctx.font = `600 36px ${TEXTO}`;
-    ctx.fillText(cortar(ctx, p.b, 330), margem + largura - 380, y);
-    if (p.penaltis) {
-      ctx.fillStyle = COR.texto3;
-      ctx.font = `500 26px ${TEXTO}`;
-      ctx.textAlign = 'center';
-      ctx.fillText(`Pênaltis ${p.penaltis}`, LARGURA / 2, y + 34);
-      ctx.textAlign = 'left';
-      y += 28;
-    }
-  }
-
-  ctx.fillStyle = COR.texto3;
-  ctx.font = `500 28px ${TEXTO}`;
-  ctx.textAlign = 'center';
-  ctx.fillText(`Jogou? Registrou. · ${dados.endereco}`, LARGURA / 2, ALTURA - 92);
+  fundo(ctx, c);
+  cabecalho(ctx, c);
+  painelLed(ctx, c, plano, dados);
+  classificacao(ctx, c, plano, dados.tabela);
+  ultimasPartidas(ctx, c, plano, dados.ultimas);
+  rodape(ctx, c, plano, dados.endereco);
 
   return new Promise((resolver, rejeitar) =>
     canvas.toBlob((b) => (b ? resolver(b) : rejeitar(new Error('Imagem não gerada.'))), 'image/png'),

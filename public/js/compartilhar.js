@@ -1,6 +1,7 @@
 // Compartilhamento do resumo: gera o cartão em PNG e abre a folha de compartilhamento do sistema.
 // Sem suporte a arquivos (desktop, navegadores antigos), baixa a imagem.
 import { diaLocal } from '../../compartilhado/datas.js';
+import { vencedorFinal } from '../../compartilhado/placar.js';
 import { gerarCartao } from './cartao-resumo.js';
 import { avisar } from './componentes/aviso.js';
 import { h } from './util.js';
@@ -12,12 +13,13 @@ function dadosDoCartao({ visao, estatisticas }) {
     totais: estatisticas.totais,
     tabela: estatisticas.tabela,
     endereco: location.host,
-    ultimas: visao.partidas.slice(0, 5).map((p) => ({
+    ultimas: visao.partidas.map((p) => ({
       a: nome(p.ladoA),
       b: nome(p.ladoB),
       placarA: p.placarA,
       placarB: p.placarB,
       penaltis: p.penaltisA != null ? `${p.penaltisA} x ${p.penaltisB}` : null,
+      vencedor: vencedorFinal(p).lado,
     })),
   };
 }
