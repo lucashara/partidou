@@ -1,7 +1,7 @@
 // Entrar em resenha: convite recebido por link ou digitado, depois o apelido.
 import { codigoConviteValido, normalizarCodigo } from '../../../compartilhado/codigos.js';
 import { LIMITES } from '../../../compartilhado/nomes.js';
-import { criarCampo } from '../componentes/campo.js';
+import { criarCampo, exigirPreenchidos } from '../componentes/campo.js';
 import { desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
 import { mensagemDeErro } from '../erros.js';
@@ -30,6 +30,7 @@ export function telaEntrar(raiz, rota) {
       dica: 'Recebido do criador da resenha. O link do convite abre esta tela já preenchida.',
     });
     const botao = h('button', { type: 'submit', class: 'btn btn-primario btn-grande btn-bloco' }, 'Continuar');
+    exigirPreenchidos(botao, [campo]);
     const formulario = h(
       'form',
       {
@@ -68,6 +69,7 @@ export function telaEntrar(raiz, rota) {
     });
     const erro = h('p', { class: 'campo-mensagem', role: 'alert' });
     const botao = h('button', { type: 'submit', class: 'btn btn-primario btn-grande btn-bloco' }, 'Entrar na resenha');
+    exigirPreenchidos(botao, [campo]);
     const formulario = h(
       'form',
       {
@@ -76,7 +78,6 @@ export function telaEntrar(raiz, rota) {
         onSubmit: (e) => {
           e.preventDefault();
           erro.textContent = '';
-          if (!campo.entrada.value.trim()) return campo.definirErro('Informar o apelido.');
           campo.definirErro(null);
           ocupar(botao, 'Entrando…', async () => {
             try {

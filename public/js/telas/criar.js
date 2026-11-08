@@ -3,7 +3,7 @@
 import { formatarCodigo } from '../../../compartilhado/codigos.js';
 import { LIMITES } from '../../../compartilhado/nomes.js';
 import { blocoSegredo } from '../componentes/bloco-segredo.js';
-import { criarCampo } from '../componentes/campo.js';
+import { criarCampo, exigirPreenchidos } from '../componentes/campo.js';
 import { desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
 import { mensagemDeErro } from '../erros.js';
@@ -26,6 +26,7 @@ export function telaCriar(raiz) {
   });
   const erro = h('p', { class: 'campo-mensagem', role: 'alert' });
   const botao = h('button', { type: 'submit', class: 'btn btn-primario btn-grande btn-bloco' }, 'Criar resenha');
+  exigirPreenchidos(botao, [nome, apelido]);
 
   const formulario = h(
     'form',
@@ -36,9 +37,6 @@ export function telaCriar(raiz) {
         e.preventDefault();
         if (botao.getAttribute('aria-disabled') === 'true') return;
         erro.textContent = '';
-        nome.definirErro(nome.entrada.value.trim() ? null : 'Informar o nome da resenha.');
-        apelido.definirErro(apelido.entrada.value.trim() ? null : 'Informar o apelido.');
-        if (!nome.entrada.value.trim() || !apelido.entrada.value.trim()) return;
         botao.setAttribute('aria-disabled', 'true');
         botao.textContent = 'Criando…';
         try {

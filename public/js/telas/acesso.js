@@ -1,6 +1,6 @@
 // Código de transferência: abre no aparelho atual uma resenha que já tem acesso em outro aparelho.
 import { codigoTransferenciaValido, normalizarCodigo } from '../../../compartilhado/codigos.js';
-import { criarCampo } from '../componentes/campo.js';
+import { criarCampo, exigirPreenchidos } from '../componentes/campo.js';
 import { desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
 import { mensagemDeErro } from '../erros.js';
@@ -18,6 +18,7 @@ export function telaAcesso(raiz) {
     dica: 'Gerado em Ajustes, no aparelho que já tem acesso. Vale 10 minutos e funciona uma vez.',
   });
   const botao = h('button', { type: 'submit', class: 'btn btn-primario btn-grande btn-bloco' }, 'Entrar na resenha');
+  exigirPreenchidos(botao, [campo]);
 
   trocarFilhos(
     raiz,

@@ -4,6 +4,21 @@ import { h } from '../util.js';
 let contador = 0;
 
 /**
+ * Mantém o botão desabilitado enquanto algum campo estiver vazio, para não oferecer a ação principal sem dados.
+ * @param {HTMLElement} botao
+ * @param {{ entrada: HTMLInputElement }[]} campos
+ */
+export function exigirPreenchidos(botao, campos) {
+  const atualizar = () =>
+    botao.toggleAttribute(
+      'disabled',
+      campos.some((campo) => !campo.entrada.value.trim()),
+    );
+  for (const campo of campos) campo.entrada.addEventListener('input', atualizar);
+  atualizar();
+}
+
+/**
  * @param {{ rotulo: string, nome?: string, tipo?: string, valor?: string, dica?: string, maximo?: number, modo?: string, autocomplete?: string, classeEntrada?: string, obrigatorio?: boolean, aoMudar?: (valor: string) => void }} opcoes
  * @returns {{ el: HTMLElement, entrada: HTMLInputElement, definirErro: (mensagem: string | null) => void }}
  */

@@ -38,6 +38,8 @@ A primeira visita abre uma apresentação curta; o botão `?` do cabeçalho a re
 
 Toda tela tem estado de carregamento (esqueleto), vazio, erro e sem acesso. Erros de rede e de servidor aparecem como aviso no topo, ou dentro da folha quando há uma aberta. O indicador do cabeçalho mostra Sincronizado, Pendente, Offline, Erro ou Sem acesso; abaixo de 420 px o estado Sincronizado vira só o ponto verde (o texto segue para o leitor de tela) e os demais mantêm o rótulo.
 
+Nos formulários, a ação principal fica desabilitada enquanto algum campo obrigatório estiver vazio (`exigirPreenchidos` em `public/js/componentes/campo.js`); o formato e a existência do valor são validados ao enviar.
+
 ## Acessibilidade
 
 - Alvo mínimo de toque de 44 px nas ações principais e de 24 px nas demais.
