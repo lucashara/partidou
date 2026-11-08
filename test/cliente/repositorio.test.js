@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
+import { criarArmazenamentoMemoria, ErroArmazenamento } from '../../public/js/dados/armazenamento.js';
 import { assentar, criarAmbiente, partidaSimples } from './ajuda/ambiente.js';
 
 const CHAVE = 'ABCDE-FGHJK-MNPQR-STVWX-YZ012';
@@ -12,6 +13,23 @@ const sessao = (id = 'resenha-nova-0000000001', extras = {}) => ({
   ...extras,
 });
 const rota = (/** @type {string} */ caminho) => (/** @type {any} */ c) => c.metodo === 'POST' && c.caminho === caminho;
+
+describe('armazenamento local indisponível', () => {
+  const indisponivel = () => ({
+    ...criarArmazenamentoMemoria(),
+    listarResenhas: () => Promise.reject(new ErroArmazenamento('Falha interna.')),
+  });
+
+  test('criarResenha e aceitarConvite falham antes de chamar o servidor, sem deixar resenha órfã', async () => {
+    const ambiente = criarAmbiente({ armazenamento: indisponivel() });
+    const repositorio = ambiente.criarRepositorio();
+    const esperado = { name: 'ErroArmazenamento', mensagem: 'Armazenamento local indisponível neste navegador.' };
+    await assert.rejects(repositorio.criarResenha({ nome: 'Racha', apelido: 'Lucas' }), esperado);
+    await assert.rejects(repositorio.aceitarConvite('ABCD-EFGH-JKMN', 'Lucas'), esperado);
+    await assert.rejects(repositorio.recuperarAcesso(CHAVE), esperado);
+    assert.equal(ambiente.servidor.chamadas.length, 0);
+  });
+});
 
 describe('entrada na resenha', () => {
   test('criarResenha grava resenha com token e estado inicial, e listarResenhas não expõe o token', async () => {

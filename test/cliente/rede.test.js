@@ -111,7 +111,8 @@ describe('recuo e retomada', () => {
     await controlador.lancar(partidaSimples());
     await assentar();
     assert.equal(msDoUltimo(ambiente), 7000);
-    assert.equal(controlador.visao().sync.estado, 'offline');
+    assert.equal(controlador.visao().sync.estado, 'pendente', 'limite do servidor não é falta de conexão');
+    assert.equal(controlador.visao().sync.mensagem, 'Muitas requisições ao servidor. Nova tentativa em instantes.');
     assert.equal(controlador.visao().sync.pendentes, 1);
 
     ambiente.servidor.programar(ehCriacao, {

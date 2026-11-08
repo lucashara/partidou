@@ -107,3 +107,12 @@ describe('armazenamento IndexedDB', () => {
     await assert.rejects(arm.listarResenhas(), (e) => e instanceof ErroArmazenamento && /indisponível/.test(e.message));
   });
 });
+
+describe('ErroArmazenamento', () => {
+  test('expõe a mensagem como as demais falhas do motor, para a tela mostrar', async () => {
+    const { mensagemDeErro } = await import('../../public/js/erros.js');
+    const erro = new ErroArmazenamento('Armazenamento local cheio.');
+    assert.equal(erro.mensagem, 'Armazenamento local cheio.');
+    assert.equal(mensagemDeErro(erro, 'Falha ao lançar a partida.'), 'Armazenamento local cheio.');
+  });
+});

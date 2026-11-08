@@ -71,3 +71,74 @@ test('as duas abas sincronizando juntas enviam cada operação uma vez', async (
   assert.equal(ambiente.servidor.chamadas.filter(ehCriacao).length - antes, 2);
   assert.equal(ambiente.servidor.partidas.size, 2);
 });
+
+/** Duas abas sobre o mesmo armazenamento; a primeira tem a criação em voo (requisição retida no servidor). */
+async function criacaoEmVoo() {
+  const armazenamento = criarArmazenamentoMemoria();
+  const ambiente = criarAmbiente({ armazenamento });
+  await ambiente.semearResenha();
+  const travas = criarMutexMemoria();
+  const hub = criarHubCanais();
+  const a = /** @type {any} */ (
+    await ambiente.criarRepositorio({ travas, canal: hub.novo() }).abrir(ambiente.servidor.resenhaId)
+  );
+  const b = /** @type {any} */ (
+    await ambiente.criarRepositorio({ travas, canal: hub.novo() }).abrir(ambiente.servidor.resenhaId)
+  );
+  await assentar();
+  const liberar = ambiente.servidor.segurar(ehCriacao);
+  const { partidaId } = await a.lancar(partidaSimples({ placarA: 1 }));
+  await assentar();
+  assert.equal(b.visao().partidas[0]?.id, partidaId, 'a outra aba enxerga a criação pendente');
+  return { ambiente, a, b, partidaId, liberar };
+}
+
+test('outra aba exclui a criação enquanto a primeira envia: a exclusão vale depois do envio, sem perda silenciosa', async () => {
+  const { ambiente, a, b, partidaId, liberar } = await criacaoEmVoo();
+  await b.excluir(partidaId);
+  const fila = await ambiente.armazenamento.listarFila(ambiente.servidor.resenhaId);
+  assert.deepEqual(
+    fila.map((o) => o.tipo),
+    ['criar', 'excluir'],
+    'a criação em envio não é removida da fila',
+  );
+  liberar();
+  await assentar();
+  await a.ressincronizar();
+  assert.equal(ambiente.servidor.partidas.get(partidaId).excluida, true);
+  assert.equal(a.visao().partidas.length, 0);
+  assert.equal(b.visao().partidas.length, 0);
+  assert.equal(b.visao().sync.pendentes, 0);
+});
+
+test('outra aba edita a criação enquanto a primeira envia: a edição chega ao servidor depois da criação', async () => {
+  const { ambiente, a, b, partidaId, liberar } = await criacaoEmVoo();
+  await b.editar(partidaId, { placarA: 9 });
+  liberar();
+  await assentar();
+  await a.ressincronizar();
+  const noServidor = ambiente.servidor.partidas.get(partidaId);
+  assert.equal(noServidor.placarA, 9);
+  assert.equal(noServidor.rev, 2);
+  assert.equal(a.visao().partidas[0].placarA, 9);
+  assert.equal(b.visao().sync.pendentes, 0);
+});
+
+test('marca de envio antiga (aba que morreu) não impede mesclar a edição na criação pendente', async () => {
+  const armazenamento = criarArmazenamentoMemoria();
+  const ambiente = criarAmbiente({ armazenamento });
+  await ambiente.semearResenha();
+  const a = /** @type {any} */ (await ambiente.criarRepositorio().abrir(ambiente.servidor.resenhaId));
+  await assentar();
+  ambiente.servidor.programar(() => true, 'rede', 1000);
+  const { partidaId } = await a.lancar(partidaSimples());
+  await assentar();
+  await armazenamento.atualizar(ambiente.servidor.resenhaId, (_, fila) => {
+    fila[0].enviandoDesde = ambiente.agora() - 60_000;
+    return { fila };
+  });
+  await a.editar(partidaId, { placarA: 4 });
+  const fila = await armazenamento.listarFila(ambiente.servidor.resenhaId);
+  assert.equal(fila.length, 1);
+  assert.equal(fila[0].corpo.placarA, 4);
+});

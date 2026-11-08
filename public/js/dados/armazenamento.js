@@ -4,6 +4,7 @@ export class ErroArmazenamento extends Error {
   constructor(mensagem) {
     super(mensagem);
     this.name = 'ErroArmazenamento';
+    this.mensagem = mensagem;
   }
 }
 

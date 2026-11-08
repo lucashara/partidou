@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { assentar, criarAmbiente, partidaSimples } from './ajuda/ambiente.js';
 
 const ehCriacao = (/** @type {any} */ c) => c.metodo === 'POST' && c.caminho.endsWith('/partidas');
+const ehEdicao = (/** @type {any} */ c) => c.metodo === 'PATCH';
 const ehEstado = (/** @type {any} */ c) => c.metodo === 'GET' && c.caminho.includes('/estado');
 
 /** Abre a resenha semeada e espera a primeira sincronização. */
@@ -282,6 +283,134 @@ describe('respostas de erro do servidor', () => {
   });
 });
 
+describe('edição reenviada depois de resposta perdida', () => {
+  /** Duas edições enfileiradas offline; a primeira chega ao servidor e a resposta se perde. */
+  async function cenario() {
+    const ambiente = criarAmbiente();
+    const { controlador, avisos } = await abrir(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await controlador.ressincronizar();
+    derrubarRede(ambiente);
+    await controlador.editar(partidaId, { placarA: 5 });
+    await controlador.editar(partidaId, { placarA: 6 });
+    ambiente.servidor.limpar();
+    ambiente.servidor.perderResposta(ehEdicao);
+    await controlador.ressincronizar();
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 5);
+    assert.equal(controlador.visao().sync.pendentes, 2);
+    return { ambiente, controlador, avisos, partidaId };
+  }
+
+  test('servidor que reconhece o resultado como aplicado: as duas edições chegam, sem aviso', async () => {
+    const { ambiente, controlador, avisos, partidaId } = await cenario();
+    await controlador.ressincronizar();
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 6);
+    assert.equal(ambiente.servidor.partidas.get(partidaId).rev, 3);
+    assert.deepEqual(avisos, []);
+    assert.equal(controlador.visao().sync.pendentes, 0);
+  });
+
+  test('409 cujo atual já traz o resultado da operação a confirma e reajusta as seguintes sobre atual.rev', async () => {
+    const { ambiente, controlador, avisos, partidaId } = await cenario();
+    ambiente.servidor.programar(ehEdicao, {
+      status: 409,
+      corpo: {
+        erro: {
+          codigo: 'CONFLITO_REVISAO',
+          mensagem: 'Revisão desatualizada.',
+          atual: { ...ambiente.servidor.partidas.get(partidaId) },
+        },
+      },
+    });
+    const antes = ambiente.servidor.chamadas.filter(ehEdicao).length;
+    await controlador.ressincronizar();
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 6, 'a segunda edição não foi descartada');
+    assert.deepEqual(
+      ambiente.servidor.chamadas
+        .filter(ehEdicao)
+        .slice(antes)
+        .map((c) => [c.corpo.rev, c.corpo.placarA]),
+      [
+        [1, 5],
+        [2, 6],
+      ],
+    );
+    assert.deepEqual(avisos, []);
+    assert.equal(controlador.visao().partidas[0].placarA, 6);
+    assert.equal(controlador.visao().sync.pendentes, 0);
+  });
+
+  test('edição offline contra edição de outro aparelho: conflito de verdade, aviso "alterada"', async () => {
+    const ambiente = criarAmbiente();
+    const { controlador, avisos } = await abrir(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await controlador.ressincronizar();
+    derrubarRede(ambiente);
+    await controlador.editar(partidaId, { placarA: 5 });
+    ambiente.servidor.limpar();
+    ambiente.servidor.externo.editar(partidaId, { placarA: 8 });
+    await controlador.ressincronizar();
+    assert.deepEqual(
+      avisos.map((a) => a.mensagem),
+      ['Partida alterada em outro aparelho. A alteração não foi aplicada.'],
+    );
+    assert.equal(controlador.visao().partidas[0].placarA, 8);
+  });
+
+  test('edição offline de partida excluída em outro aparelho: aviso "excluída"', async () => {
+    const ambiente = criarAmbiente();
+    const { controlador, avisos } = await abrir(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await controlador.ressincronizar();
+    derrubarRede(ambiente);
+    await controlador.editar(partidaId, { placarA: 5 });
+    ambiente.servidor.limpar();
+    ambiente.servidor.externo.excluir(partidaId);
+    await controlador.ressincronizar();
+    assert.deepEqual(
+      avisos.map((a) => [a.tipo, a.mensagem]),
+      [['conflito', 'Partida excluída em outro aparelho. A alteração não foi aplicada.']],
+    );
+    assert.equal(controlador.visao().partidas.length, 0);
+    assert.equal(controlador.visao().sync.pendentes, 0);
+  });
+});
+
+describe('folha de edição aberta e alteração de outro aparelho', () => {
+  test('revBase desatualizado é recusado sem enfileirar nada e a visão traz os valores atuais', async () => {
+    const ambiente = criarAmbiente();
+    const { controlador } = await abrir(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await controlador.ressincronizar();
+    const revBase = controlador.visao().partidas[0].rev;
+    ambiente.servidor.externo.editar(partidaId, { placarA: 7, placarB: 7 });
+    await controlador.ressincronizar();
+    await assert.rejects(controlador.editar(partidaId, { placarA: 2 }, { revBase }), { codigo: 'CONFLITO_REVISAO' });
+    assert.equal((await ambiente.armazenamento.listarFila(ambiente.servidor.resenhaId)).length, 0);
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 7);
+    const atual = controlador.visao().partidas[0];
+    assert.deepEqual([atual.placarA, atual.placarB], [7, 7]);
+
+    await controlador.editar(partidaId, { placarA: 2 }, { revBase: atual.rev });
+    await controlador.ressincronizar();
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 2);
+  });
+
+  test('revBase 0 (criação ainda pendente ao abrir) não conta como conflito depois da confirmação', async () => {
+    const ambiente = criarAmbiente();
+    const { controlador } = await abrir(ambiente);
+    derrubarRede(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await assentar();
+    assert.equal(controlador.visao().partidas[0].rev, 0);
+    ambiente.servidor.limpar();
+    await controlador.ressincronizar();
+    await controlador.editar(partidaId, { placarA: 4 }, { revBase: 0 });
+    await controlador.ressincronizar();
+    assert.equal(ambiente.servidor.partidas.get(partidaId).placarA, 4);
+  });
+});
+
 describe('sem acesso', () => {
   test('401 no envio preserva a fila e o cache e emite o aviso', async () => {
     const ambiente = criarAmbiente();
@@ -307,6 +436,24 @@ describe('sem acesso', () => {
     assert.equal(fila[0].partidaId, outra.partidaId);
     assert.ok(await ambiente.armazenamento.lerEstado(ambiente.servidor.resenhaId));
     assert.ok(visao.partidas.some((p) => p.id === partidaId));
+  });
+
+  test('lançar, editar e excluir depois de sem-acesso são recusados e nada entra na fila', async () => {
+    const ambiente = criarAmbiente();
+    const { controlador } = await abrir(ambiente);
+    const { partidaId } = await controlador.lancar(partidaSimples());
+    await controlador.ressincronizar();
+    ambiente.servidor.programar(
+      () => true,
+      { status: 401, corpo: { erro: { codigo: 'NAO_AUTENTICADO', mensagem: 'Sessão inválida.' } } },
+      1,
+    );
+    await controlador.ressincronizar();
+    assert.equal(controlador.visao().sync.estado, 'sem-acesso');
+    await assert.rejects(controlador.lancar(partidaSimples()), { codigo: 'SEM_ACESSO' });
+    await assert.rejects(controlador.editar(partidaId, { placarA: 3 }), { codigo: 'SEM_ACESSO' });
+    await assert.rejects(controlador.excluir(partidaId), { codigo: 'SEM_ACESSO' });
+    assert.equal((await ambiente.armazenamento.listarFila(ambiente.servidor.resenhaId)).length, 0);
   });
 
   test('404 ao ler o estado marca sem-acesso e para o fluxo de eventos', async () => {

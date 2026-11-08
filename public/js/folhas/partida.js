@@ -40,16 +40,20 @@ export function abrirFolhaPartida({ partida, visao, controlador, nomeDoLado, nom
   }
 
   let folha;
+  // Revisão em que a folha abriu: o envio é recusado se outro aparelho alterou a partida depois disso.
+  let revBase = partida.rev;
   const editor = criarEditorPlacar({ aoMudar: atualizarBotao });
   editor.definirCompetidores(competidores);
-  editor.carregar({
-    ladoA: { id: partida.ladoA, nome: nomeDoLado(partida.ladoA) },
-    ladoB: { id: partida.ladoB, nome: nomeDoLado(partida.ladoB) },
-    placarA: partida.placarA,
-    placarB: partida.placarB,
-    penaltis: partida.penaltisA != null ? { a: partida.penaltisA, b: partida.penaltisB } : null,
-    modalidade: partida.modalidade ?? null,
-  });
+  const carregarNoEditor = (/** @type {any} */ p) =>
+    editor.carregar({
+      ladoA: { id: p.ladoA, nome: nomeDoLado(p.ladoA) },
+      ladoB: { id: p.ladoB, nome: nomeDoLado(p.ladoB) },
+      placarA: p.placarA,
+      placarB: p.placarB,
+      penaltis: p.penaltisA != null ? { a: p.penaltisA, b: p.penaltisB } : null,
+      modalidade: p.modalidade ?? null,
+    });
+  carregarNoEditor(partida);
 
   const dica = h('p', { class: 'acao-lancar-dica', role: 'status' });
   const salvar = h(
@@ -74,19 +78,37 @@ export function abrirFolhaPartida({ partida, visao, controlador, nomeDoLado, nom
     if (!s.valido) return;
     const v = editor.valores();
     try {
-      await controlador.editar(partida.id, {
-        ladoA: v.ladoA,
-        ladoB: v.ladoB,
-        placarA: v.placarA,
-        placarB: v.placarB,
-        penaltis: v.penaltis,
-        modalidade: v.modalidade,
-      });
+      await controlador.editar(
+        partida.id,
+        {
+          ladoA: v.ladoA,
+          ladoB: v.ladoB,
+          placarA: v.placarA,
+          placarB: v.placarB,
+          penaltis: v.penaltis,
+          modalidade: v.modalidade,
+        },
+        { revBase },
+      );
       folha.fechar();
       avisar({ texto: 'Partida atualizada.' });
     } catch (erro) {
-      avisar({ texto: mensagemDe(erro, 'Falha ao salvar a partida.'), tom: 'erro' });
+      if (/** @type {any} */ (erro)?.codigo === 'CONFLITO_REVISAO') mostrarConflito(erro);
+      else avisar({ texto: mensagemDe(erro, 'Falha ao salvar a partida.'), tom: 'erro' });
     }
+  }
+
+  /** Recarrega a folha com os valores atuais da partida, sem gravar nada. */
+  function mostrarConflito(/** @type {any} */ erro) {
+    const atual = controlador.visao().partidas.find((/** @type {any} */ p) => p.id === partida.id);
+    if (!atual) {
+      folha.fechar();
+      avisar({ texto: 'Partida excluída em outro aparelho.', tom: 'erro' });
+      return;
+    }
+    revBase = atual.rev;
+    carregarNoEditor(atual);
+    avisar({ texto: erro.mensagem, tom: 'erro' });
   }
 
   async function apagar() {

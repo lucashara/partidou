@@ -6,6 +6,7 @@ import {
 } from '../../../compartilhado/codigos.js';
 import { LIMITES, validarNome } from '../../../compartilhado/nomes.js';
 import { chamar, ErroLocal } from './api.js';
+import { ErroArmazenamento } from './armazenamento.js';
 import { abrirControlador } from './controlador.js';
 import { criarMutexMemoria } from './sincronizacao.js';
 
@@ -45,6 +46,17 @@ export function criarRepositorio(dependencias) {
 
   /** @param {string} caminho @param {unknown} corpo */
   const publica = (caminho, corpo) => chamar('POST', caminho, { corpo, fetchImpl });
+
+  /** O token só existe na resposta do servidor: sem onde guardá-lo, a chamada não pode nem começar. */
+  async function exigirArmazenamento() {
+    try {
+      await armazenamento.listarResenhas();
+    } catch (erro) {
+      if (erro instanceof ErroArmazenamento)
+        throw new ErroArmazenamento('Armazenamento local indisponível neste navegador.');
+      throw erro;
+    }
+  }
 
   /**
    * Grava a sessão devolvida pelo servidor. Se a resenha já existe aqui, só o token e a identidade são trocados.
@@ -95,10 +107,12 @@ export function criarRepositorio(dependencias) {
 
     /** @param {{ nome: string, apelido: string }} dados */
     async criarResenha({ nome, apelido }) {
-      const resposta = await publica('/api/resenhas', {
+      const dados = {
         nome: nomeValido(nome, LIMITES.nomeResenha, 'nome'),
         apelido: nomeValido(apelido, LIMITES.apelido, 'apelido'),
-      });
+      };
+      await exigirArmazenamento();
+      const resposta = await publica('/api/resenhas', dados);
       const resenhaId = await guardarSessao(resposta);
       return { resenhaId, chaveRecuperacao: resposta.chaveRecuperacao, convite: resposta.convite };
     },
@@ -115,10 +129,9 @@ export function criarRepositorio(dependencias) {
     async aceitarConvite(codigo, apelido) {
       if (!codigoConviteValido(codigo))
         throw new ErroLocal('CODIGO_INVALIDO', 'Convite inválido ou expirado.', 'codigo');
-      const resposta = await publica('/api/convites/aceitar', {
-        codigo: normalizarCodigo(codigo),
-        apelido: nomeValido(apelido, LIMITES.apelido, 'apelido'),
-      });
+      const dados = { codigo: normalizarCodigo(codigo), apelido: nomeValido(apelido, LIMITES.apelido, 'apelido') };
+      await exigirArmazenamento();
+      const resposta = await publica('/api/convites/aceitar', dados);
       return { resenhaId: await guardarSessao(resposta) };
     },
 
@@ -126,6 +139,7 @@ export function criarRepositorio(dependencias) {
     async recuperarAcesso(chave) {
       if (!chaveRecuperacaoValida(chave))
         throw new ErroLocal('CHAVE_INVALIDA', 'Chave de recuperação inválida.', 'chave');
+      await exigirArmazenamento();
       const resposta = await publica('/api/acesso/recuperar', { chave: normalizarCodigo(chave) });
       return { resenhaId: await guardarSessao(resposta), chaveRecuperacao: resposta.chaveRecuperacao };
     },
@@ -134,6 +148,7 @@ export function criarRepositorio(dependencias) {
     async usarTransferencia(codigo) {
       if (!codigoTransferenciaValido(codigo))
         throw new ErroLocal('CODIGO_INVALIDO', 'Código de transferência inválido ou expirado.', 'codigo');
+      await exigirArmazenamento();
       const resposta = await publica('/api/acesso/transferencia/usar', { codigo: normalizarCodigo(codigo) });
       return { resenhaId: await guardarSessao(resposta) };
     },

@@ -105,3 +105,30 @@ export function prepararEdicao(partida, mudancas, { competidores, agora, novoId 
   if (corpo.jogadaEm !== undefined) validarJogadaEm(corpo.jogadaEm, agora());
   return corpo;
 }
+
+// O tempo limite da requisição é 15 s; passado isso a marca de envio é de uma aba que morreu e deixa de valer.
+const ENVIO_VALIDO_MS = 30_000;
+
+/**
+ * Criação cuja requisição pode estar chegando ao servidor agora, em qualquer aba: não pode mais ser alterada nem removida.
+ * @param {import('./tipos.js').Operacao} op
+ * @param {number} agora
+ */
+export const envioEmCurso = (op, agora) => op.enviandoDesde !== undefined && agora - op.enviandoDesde < ENVIO_VALIDO_MS;
+
+/**
+ * Indica se o servidor já está no estado que a operação produziria (reenvio após resposta perdida).
+ * @param {import('./tipos.js').Operacao} op
+ * @param {import('./tipos.js').Partida} partida
+ */
+export function operacaoJaAplicada({ tipo, corpo }, partida) {
+  if (tipo === 'excluir') return partida.excluida;
+  if (tipo === 'restaurar') return !partida.excluida;
+  if (tipo !== 'editar' || partida.excluida) return false;
+  for (const campo of CAMPOS_SIMPLES) if (corpo[campo] !== undefined && corpo[campo] !== partida[campo]) return false;
+  if (corpo.penaltis !== undefined) {
+    const [a, b] = [corpo.penaltis?.a ?? null, corpo.penaltis?.b ?? null];
+    if (a !== partida.penaltisA || b !== partida.penaltisB) return false;
+  }
+  return (!corpo.ladoA || corpo.ladoA.id === partida.ladoA) && (!corpo.ladoB || corpo.ladoB.id === partida.ladoB);
+}

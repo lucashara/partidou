@@ -4,6 +4,7 @@ import { criarAbaGeral } from '../abas/geral.js';
 import { criarAbaHistorico } from '../abas/historico.js';
 import { criarAbaPlacar } from '../abas/placar.js';
 import { avisar } from '../componentes/aviso.js';
+import { confirmar } from '../componentes/folha.js';
 import { criarIndicadorSync, desenharTopo } from '../componentes/topo.js';
 import { repositorio } from '../dados/repositorio-navegador.js';
 import { mensagemDeErro } from '../erros.js';
@@ -45,6 +46,10 @@ export function telaResenha(raiz, rota) {
   /** @type {string | null} */
   let nomeNoTopo = null;
   const desassinar = [];
+  /** @type {import('../dados/tipos.js').Aviso[]} */
+  const lote = [];
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let loteTimer = null;
   const partes = {};
   const links = new Map();
   const paineis = new Map();
@@ -128,6 +133,16 @@ export function telaResenha(raiz, rota) {
         type: 'button',
         class: 'btn',
         onClick: async () => {
+          const pendentes = visao.sync.pendentes;
+          if (pendentes > 0) {
+            const ok = await confirmar({
+              titulo: 'Remover do aparelho',
+              texto: `${pendentes === 1 ? '1 lançamento ainda não enviado ao servidor será perdido.' : `${pendentes} lançamentos ainda não enviados ao servidor serão perdidos.`} Esta ação não pode ser desfeita.`,
+              rotuloConfirmar: 'Remover',
+              perigo: true,
+            });
+            if (!ok) return;
+          }
           await repositorio.esquecerResenha(id);
           substituir('#/');
           avisar({ texto: 'Resenha removida deste aparelho.' });
@@ -187,11 +202,24 @@ export function telaResenha(raiz, rota) {
       }),
       controlador.assinarAvisos((aviso) => {
         if (aviso.tipo === 'sem-acesso') return;
-        avisar({ texto: aviso.mensagem, tom: aviso.tipo === 'rejeitada' ? 'erro' : undefined, duracaoMs: 7000 });
+        lote.push(aviso);
+        loteTimer ??= setTimeout(mostrarLote, 300);
       }),
     );
     atualizarAbas();
     atualizar();
+  }
+
+  /** Avisos que chegam juntos viram um só: o aviso na tela é um por vez e o último apagaria os demais. */
+  function mostrarLote() {
+    loteTimer = null;
+    const avisos = lote.splice(0);
+    if (!ativo || !avisos.length) return;
+    const texto =
+      avisos.length === 1
+        ? avisos[0].mensagem
+        : `${avisos.length} alterações não foram aplicadas. ${avisos[0].mensagem}`;
+    avisar({ texto, tom: avisos.some((a) => a.tipo === 'rejeitada') ? 'erro' : undefined, duracaoMs: 7000 });
   }
 
   function atualizar() {
@@ -225,6 +253,7 @@ export function telaResenha(raiz, rota) {
     },
     desmontar() {
       ativo = false;
+      if (loteTimer) clearTimeout(loteTimer);
       for (const parar of desassinar) parar();
       navegacao.hidden = true;
       navegacao.replaceChildren();

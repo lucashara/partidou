@@ -1,4 +1,5 @@
 import { chamar, ErroApi, ErroRede } from './api.js';
+import { operacaoJaAplicada } from './operacoes.js';
 import { ajustarRevs, aplicarDelta, aplicarResposta } from './visao.js';
 
 const ATRASOS_S = [2, 5, 15, 30, 60];
@@ -6,6 +7,7 @@ const JITTER_MAXIMO = 0.2;
 const RETRY_AFTER_PADRAO_S = 5;
 const RETRY_AFTER_MAXIMO_S = 120;
 const MENSAGEM_CONFLITO = 'Partida alterada em outro aparelho. A alteração não foi aplicada.';
+const MENSAGEM_CONFLITO_EXCLUIDA = 'Partida excluída em outro aparelho. A alteração não foi aplicada.';
 const MENSAGEM_OFFLINE = 'Sem conexão com o servidor. As alterações ficam salvas neste aparelho.';
 const MENSAGEM_LIMITE = 'Muitas requisições ao servidor. Nova tentativa em instantes.';
 const MENSAGEM_SEM_ACESSO = 'Acesso à resenha encerrado neste aparelho.';
@@ -45,6 +47,7 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
     /** @type {string | null} */ erro: null,
     /** @type {number | null} */ ultimaSincronizacaoEm: null,
     /** @type {string | null} */ mensagem: null,
+    limitado: false,
   };
   let parado = false;
   let falhas = 0;
@@ -52,8 +55,6 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
   let ciclo = null;
   let repetir = false;
   let repetirForcado = false;
-  /** @type {string | null} */
-  let opEmVoo = null;
   /** @type {(() => void) | null} */
   let cancelarRetentativa = null;
 
@@ -98,6 +99,7 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
     if (situacao.semAcesso) return;
     situacao.semAcesso = true;
     situacao.offline = false;
+    situacao.limitado = false;
     situacao.mensagem = MENSAGEM_SEM_ACESSO;
     cancelarTemporizador();
     aoSemAcesso();
@@ -117,7 +119,11 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
     }
     if (erro instanceof ErroApi && erro.status === 429) {
       const segundos = Math.min(erro.retryAfter ?? RETRY_AFTER_PADRAO_S, RETRY_AFTER_MAXIMO_S);
-      marcarOffline(MENSAGEM_LIMITE, segundos * 1000);
+      // O aparelho está online: o limite do servidor não é falta de conexão.
+      Object.assign(situacao, { limitado: true, offline: false, mensagem: MENSAGEM_LIMITE });
+      falhas += 1;
+      agendarRetentativa(segundos * 1000);
+      aoMudar();
       return 'parar';
     }
     if (erro instanceof ErroApi && erro.status === 401) {
@@ -138,12 +144,17 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
   }
 
   /**
-   * Descarta a operação (e, conforme o caso, as dependentes) e avisa a tela.
+   * Descarta a operação (e, conforme o caso, as dependentes) e avisa a tela. Conflito cujo alvo já é o estado atual
+   * conta como aplicado: as operações seguintes seguem, com a revisão atual.
    * @param {import('./tipos.js').Operacao} op
    * @param {ErroApi} erro
    */
   async function descartar(op, erro) {
     const conflito = erro.status === 409 && erro.codigo === 'CONFLITO_REVISAO';
+    if (conflito && erro.atual && operacaoJaAplicada(op, erro.atual)) {
+      await confirmar(op, { partida: erro.atual });
+      return;
+    }
     await alterar((estado, fila) => {
       const dependentes = conflito || op.tipo === 'criar';
       const restante = fila.filter((o) => o.idOp !== op.idOp && !(dependentes && o.partidaId === op.partidaId));
@@ -152,7 +163,7 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
     });
     aoAviso({
       tipo: conflito ? 'conflito' : 'rejeitada',
-      mensagem: conflito ? MENSAGEM_CONFLITO : erro.mensagem,
+      mensagem: conflito ? (erro.atual?.excluida ? MENSAGEM_CONFLITO_EXCLUIDA : MENSAGEM_CONFLITO) : erro.mensagem,
       partidaId: op.partidaId,
     });
   }
@@ -168,17 +179,39 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
     });
   }
 
+  /**
+   * Grava, na mesma transação que lê a fila, a marca de que a criação está sendo enviada: outra aba só vê a
+   * criação como alterável antes dela. Devolve a operação gravada, ou null se outra aba a removeu.
+   * @param {import('./tipos.js').Operacao} op
+   * @param {number | undefined} desde
+   * @returns {Promise<import('./tipos.js').Operacao | null>}
+   */
+  async function marcarEnvio(op, desde) {
+    /** @type {import('./tipos.js').Operacao | null} */
+    let atual = null;
+    await alterar((_, fila) => {
+      const alvo = fila.find((o) => o.idOp === op.idOp);
+      if (!alvo) return;
+      if (desde === undefined) delete alvo.enviandoDesde;
+      else alvo.enviandoDesde = desde;
+      atual = { ...alvo };
+      return { fila };
+    });
+    return atual;
+  }
+
   /** @returns {Promise<'ok' | 'parar'>} */
   async function enviarFila() {
     for (;;) {
       if (parado) return 'parar';
-      const op = (await armazenamento.listarFila(resenhaId))[0];
-      if (!op) return 'ok';
-      opEmVoo = op.idOp;
+      const primeira = (await armazenamento.listarFila(resenhaId))[0];
+      if (!primeira) return 'ok';
+      const op = primeira.tipo === 'criar' ? await marcarEnvio(primeira, agora()) : primeira;
+      if (!op) continue;
       try {
         await confirmar(op, await enviarOperacao(op));
       } catch (erro) {
-        opEmVoo = null;
+        if (op.tipo === 'criar') await marcarEnvio(op, undefined);
         if (erro instanceof ErroApi && erro.status === 404) {
           // 404 vale tanto para resenha inacessível quanto para partida inexistente: a leitura do estado desempata.
           if ((await buscarDelta()) !== 'ok') return 'parar';
@@ -195,7 +228,6 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
         await descartar(op, /** @type {ErroApi} */ (erro));
         continue;
       }
-      opEmVoo = null;
       falhas = 0;
     }
   }
@@ -236,6 +268,7 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
     Object.assign(situacao, {
       semAcesso: false,
       offline: false,
+      limitado: false,
       erro: null,
       mensagem: null,
       ultimaSincronizacaoEm: agora(),
@@ -277,7 +310,11 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
             falhas += 1;
             agendarRetentativa();
           }
-        } while (repetir && !parado && (repetirForcado || (!situacao.semAcesso && !situacao.offline)));
+        } while (
+          repetir &&
+          !parado &&
+          (repetirForcado || (!situacao.semAcesso && !situacao.offline && !situacao.limitado))
+        );
       } finally {
         ciclo = null;
         aoMudar();
@@ -326,6 +363,5 @@ export function criarSincronizador({ resenhaId, deps, obterToken, aoMudar, aoGra
     },
     local: () => local,
     situacao: () => situacao,
-    opEmVoo: () => opEmVoo,
   };
 }

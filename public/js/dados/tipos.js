@@ -61,6 +61,7 @@
  * @property {number} [rev] Ausente na criação.
  * @property {number} criadaEm
  * @property {number} tentativas
+ * @property {number} [enviandoDesde] Marca gravada por quem envia a criação; vale por tempo limitado.
  */
 
 /**

@@ -1,6 +1,6 @@
 import { LIMITES, validarNome } from '../../../compartilhado/nomes.js';
 import { chamar, ErroApi, ErroLocal } from './api.js';
-import { prepararEdicao, prepararLancamento } from './operacoes.js';
+import { envioEmCurso, prepararEdicao, prepararLancamento } from './operacoes.js';
 import { criarSincronizador } from './sincronizacao.js';
 import { criarFluxo } from './sse.js';
 import { montarVisao } from './visao.js';
@@ -49,7 +49,7 @@ export async function abrirControlador({ resenha: inicial, deps, esquecerLocal, 
     else if (s.offline) [estado, mensagem] = ['offline', s.mensagem];
     else if (s.erro) [estado, mensagem] = ['erro', s.erro];
     else if (rejeitada) [estado, mensagem] = ['erro', rejeitada.mensagem];
-    else if (pendentes) estado = 'pendente';
+    else if (pendentes) [estado, mensagem] = ['pendente', s.mensagem];
     return { estado, pendentes, ultimaSincronizacaoEm: s.ultimaSincronizacaoEm, mensagem };
   }
 
@@ -139,6 +139,7 @@ export async function abrirControlador({ resenha: inicial, deps, esquecerLocal, 
   const contexto = () => ({ competidores: visaoAtual.competidores, agora, novoId });
   const exigirAberto = () => {
     if (fechado) throw new Error('Controlador fechado.');
+    if (motor.situacao().semAcesso) throw new ErroLocal('SEM_ACESSO', 'Acesso à resenha encerrado neste aparelho.');
   };
   /** @param {string} partidaId */
   const buscarPartida = (partidaId) => {
@@ -146,9 +147,9 @@ export async function abrirControlador({ resenha: inicial, deps, esquecerLocal, 
     if (!partida) throw new ErroLocal('PARTIDA_NAO_ENCONTRADA', 'Partida não encontrada.');
     return partida;
   };
-  /** @param {import('./tipos.js').Operacao[]} fila @param {string} partidaId */
-  const criacaoPendente = (fila, partidaId) =>
-    fila.find((o) => o.tipo === 'criar' && o.partidaId === partidaId && o.idOp !== motor.opEmVoo());
+  /** Criação que ainda não saiu do aparelho; a que está sendo enviada (por qualquer aba) já não pode ser alterada. */
+  const criacaoPendente = (/** @type {import('./tipos.js').Operacao[]} */ fila, /** @type {string} */ partidaId) =>
+    fila.find((o) => o.tipo === 'criar' && o.partidaId === partidaId && !envioEmCurso(o, agora()));
 
   /** @returns {Promise<void>} */
   const ressincronizar = () => motor.forcar();
@@ -256,10 +257,17 @@ export async function abrirControlador({ resenha: inicial, deps, esquecerLocal, 
       return { partidaId };
     },
 
-    /** @param {string} partidaId @param {any} mudancas */
-    async editar(partidaId, mudancas) {
+    /**
+     * `revBase` é a revisão em que a folha de edição foi aberta: se a partida mudou desde então, nada é enfileirado.
+     * @param {string} partidaId @param {any} mudancas @param {{ revBase?: number }} [opcoes]
+     */
+    async editar(partidaId, mudancas, { revBase } = {}) {
       exigirAberto();
       const partida = buscarPartida(partidaId);
+      // Revisão 0 é criação ainda não confirmada: o servidor atribui a revisão 1 sem que outro aparelho tenha alterado.
+      if (revBase && revBase !== partida.rev) {
+        throw new ErroLocal('CONFLITO_REVISAO', 'Partida alterada em outro aparelho. Valores atualizados.');
+      }
       const corpo = prepararEdicao(partida, mudancas, contexto());
       if (!Object.keys(corpo).length) return;
       await motor.alterar((_, fila) => {

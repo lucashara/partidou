@@ -98,11 +98,27 @@ export function criarServidorFalso({
     return json(201, paraResposta(partida, s));
   }
 
+  /** Como o servidor real: rev antigo cujo resultado já é o atual não é conflito. */
+  function jaNoEstadoPedido(/** @type {any} */ p, /** @type {any} */ corpo) {
+    const idDoLado = (/** @type {any} */ lado) =>
+      competidores.has(lado.id)
+        ? lado.id
+        : [...competidores.values()].find((c) => chaveDeNome(c.nome) === chaveDeNome(lado.nome ?? ''))?.id;
+    if (['placarA', 'placarB', 'modalidade', 'jogadaEm'].some((c) => c in corpo && corpo[c] !== p[c])) return false;
+    if (
+      'penaltis' in corpo &&
+      ((corpo.penaltis?.a ?? null) !== p.penaltisA || (corpo.penaltis?.b ?? null) !== p.penaltisB)
+    )
+      return false;
+    return (!corpo.ladoA || idDoLado(corpo.ladoA) === p.ladoA) && (!corpo.ladoB || idDoLado(corpo.ladoB) === p.ladoB);
+  }
+
   /** @param {string} id @param {any} corpo */
   function editar(id, corpo) {
     const p = partidas.get(id);
     if (!p) return erro(404, 'NAO_ENCONTRADO', 'Partida não encontrada.');
-    if (corpo.rev !== p.rev || p.excluida) return conflito(p);
+    if (p.excluida) return conflito(p);
+    if (corpo.rev !== p.rev) return jaNoEstadoPedido(p, corpo) ? json(200, paraResposta(p, seq)) : conflito(p);
     const s = proximo();
     for (const campo of ['placarA', 'placarB', 'modalidade', 'jogadaEm']) if (campo in corpo) p[campo] = corpo[campo];
     if ('penaltis' in corpo) [p.penaltisA, p.penaltisB] = [corpo.penaltis?.a ?? null, corpo.penaltis?.b ?? null];

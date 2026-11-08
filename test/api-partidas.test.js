@@ -171,7 +171,7 @@ describe('lançamento de partidas', () => {
       [{ jogadaEm: 'ontem' }, 'jogadaEm'],
       [{ jogadaEm: 1.5 }, 'jogadaEm'],
       [{ jogadaEm: Date.UTC(1999, 11, 31) }, 'jogadaEm'],
-      [{ jogadaEm: s.relogio.agora() + 25 * 3600_000 }, 'jogadaEm'],
+      [{ jogadaEm: s.relogio.agora() + 31 * 24 * 3600_000 }, 'jogadaEm'],
       [{ id: 'curto' }, 'id'],
       [{ id: 'com espaço no identificador!' }, 'id'],
       [{ penaltis: 'sim' }, 'penaltis'],
@@ -183,10 +183,24 @@ describe('lançamento de partidas', () => {
       assert.equal(r.status, 400, JSON.stringify(extra));
       assert.equal(r.corpo.erro.campo, campo, JSON.stringify(extra));
     }
-    const limite = await s.lancar(dono.token, id, { jogadaEm: s.relogio.agora() + 23 * 3600_000 });
-    assert.equal(limite.status, 201);
+    const futuro = await s.lancar(dono.token, id, { jogadaEm: s.relogio.agora() + 23 * 3600_000 });
+    assert.equal(futuro.status, 201);
     const antigo = await s.lancar(dono.token, id, { jogadaEm: Date.UTC(2000, 0, 1) });
     assert.equal(antigo.status, 201);
+  });
+
+  test('relógio do aparelho adiantado: data além de 5 minutos à frente vira a hora do servidor', async () => {
+    await preparar();
+    const agora = s.relogio.agora();
+    const adiantado = await s.lancar(dono.token, id, { jogadaEm: agora + 2 * 24 * 3600_000 });
+    assert.equal(adiantado.status, 201);
+    assert.equal(adiantado.corpo.partida.jogadaEm, agora);
+    const margem = await s.lancar(dono.token, id, { jogadaEm: agora + 4 * 60_000 });
+    assert.equal(margem.corpo.partida.jogadaEm, agora + 4 * 60_000, 'dentro dos 5 minutos vale como veio');
+    const atrasado = await s.lancar(dono.token, id, { jogadaEm: agora - 2 * 24 * 3600_000 });
+    assert.equal(atrasado.corpo.partida.jogadaEm, agora - 2 * 24 * 3600_000);
+    const absurdo = await s.lancar(dono.token, id, { jogadaEm: agora + 400 * 24 * 3600_000 });
+    assert.equal(absurdo.status, 400);
   });
 
   test('sem id nem data, o servidor gera os dois', async () => {
@@ -346,6 +360,41 @@ describe('edição e exclusão', () => {
     assert.equal(r.corpo.erro.atual.rev, 2);
     assert.equal(r.corpo.erro.atual.placarA, 5);
     assert.equal(r.corpo.erro.atual.id, p.id);
+  });
+
+  test('reenvio com rev antigo cujo resultado já é o atual devolve o estado atual, sem nova revisão nem seq', async () => {
+    const p = await nova();
+    const corpo = { rev: 1, placarA: 5, ladoA: { id: p.ladoA }, ladoB: { id: p.ladoB } };
+    const primeira = await s.chamar('PATCH', caminho(p.id), { token: visita.token, corpo });
+    assert.equal(primeira.corpo.partida.rev, 2);
+    const antes = (await s.chamar('GET', `/api/resenhas/${id}/estado`, { token: dono.token })).corpo.seq;
+    const reenvio = await s.chamar('PATCH', caminho(p.id), { token: visita.token, corpo });
+    assert.equal(reenvio.status, 200);
+    assert.deepEqual(reenvio.corpo.partida, primeira.corpo.partida);
+    const depois = (await s.chamar('GET', `/api/resenhas/${id}/estado`, { token: dono.token })).corpo.seq;
+    assert.equal(depois, antes);
+  });
+
+  test('rev antigo com resultado diferente do atual segue sendo conflito e não cria competidor', async () => {
+    const p = await nova();
+    await s.chamar('PATCH', caminho(p.id), { token: visita.token, corpo: { rev: 1, placarA: 5 } });
+    const antes = (await s.chamar('GET', `/api/resenhas/${id}/estado`, { token: dono.token })).corpo;
+    const r = await s.chamar('PATCH', caminho(p.id), {
+      token: visita.token,
+      corpo: { rev: 1, placarA: 5, ladoB: { nome: 'Adversário Fantasma' } },
+    });
+    assert.equal(r.status, 409);
+    assert.equal(r.corpo.erro.atual.rev, 2);
+    const depois = (await s.chamar('GET', `/api/resenhas/${id}/estado`, { token: dono.token })).corpo;
+    assert.equal(depois.seq, antes.seq);
+    assert.equal(depois.competidores.length, antes.competidores.length);
+  });
+
+  test('rev antigo com corpo inválido para o estado atual é conflito, não 422', async () => {
+    const p = await nova();
+    await s.chamar('PATCH', caminho(p.id), { token: visita.token, corpo: { rev: 1, placarA: 5 } });
+    const r = await s.chamar('PATCH', caminho(p.id), { token: visita.token, corpo: { rev: 1, placarA: -1 } });
+    assert.equal(r.status, 409);
   });
 
   test('rev ausente ou inválido é 400', async () => {

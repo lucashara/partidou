@@ -2,19 +2,16 @@ import { MODALIDADES } from '../../compartilhado/modalidades.js';
 import { validarPlacar } from '../../compartilhado/placar.js';
 import { ErroApp, naoEncontrado, requisicaoInvalida } from '../erros.js';
 import { FORMATO_ID, resolverLado } from './competidores.js';
+import { seqDaResenha } from './estado.js';
 import { paraCompetidor, paraPartida } from './modelos.js';
 import { exigirAutorOuCriador } from './permissoes.js';
 import { proximoSeq } from './seq.js';
 import { gerarIdUuid } from './tokens.js';
 
 const JOGADA_MINIMA_MS = Date.UTC(2000, 0, 1);
-const JOGADA_FOLGA_MS = 24 * 3600_000;
-
-/**
- * @param {import("../tipos.js").Banco} banco
- * @param {string} resenhaId
- */
-const seqAtual = (banco, resenhaId) => banco.um('SELECT seq FROM resenhas WHERE id = ?', resenhaId)?.seq ?? 0;
+// Até 5 minutos à frente vale como veio; além disso o relógio do aparelho está errado e vale a hora do servidor.
+const JOGADA_TOLERANCIA_MS = 5 * 60_000;
+const JOGADA_LIMITE_MS = 30 * 24 * 3600_000;
 
 /**
  * @param {import("../tipos.js").Banco} banco
@@ -23,9 +20,6 @@ const seqAtual = (banco, resenhaId) => banco.um('SELECT seq FROM resenhas WHERE 
 const competidoresDe = (banco, ids) =>
   [...new Set(ids)].map((id) => paraCompetidor(banco.um('SELECT * FROM competidores WHERE id = ?', id) ?? {}));
 
-/**
- * @param {any} atual
- */
 /**
  * @param {any} atual
  * @param {string} [mensagem]
@@ -50,10 +44,10 @@ function lerModalidade(valor) {
  */
 function lerJogadaEm(valor, agora) {
   if (valor === undefined || valor === null) return agora;
-  if (!Number.isInteger(valor) || valor < JOGADA_MINIMA_MS || valor > agora + JOGADA_FOLGA_MS) {
+  if (!Number.isInteger(valor) || valor < JOGADA_MINIMA_MS || valor > agora + JOGADA_LIMITE_MS) {
     throw requisicaoInvalida('Data da partida fora do intervalo permitido.', 'jogadaEm');
   }
-  return valor;
+  return valor > agora + JOGADA_TOLERANCIA_MS ? agora : valor;
 }
 
 /**
@@ -101,7 +95,7 @@ export function criarPartida(ctx, auth, corpo) {
       status: 200,
       partida: paraPartida(existente),
       competidores: competidoresDe(banco, [existente.lado_a, existente.lado_b]),
-      seq: seqAtual(banco, auth.resenhaId),
+      seq: seqDaResenha(banco, auth.resenhaId),
       mudou: false,
     };
   }
@@ -170,6 +164,41 @@ function exigirRev(valor) {
 }
 
 /**
+ * Resultado pedido pela edição, já validado. Lados desconhecidos são criados na transação em curso.
+ * @param {import("../tipos.js").Contexto} ctx
+ * @param {import("../tipos.js").Autenticacao} auth
+ * @param {any} atual
+ * @param {Record<string, any>} corpo
+ * @param {number} agora
+ * @param {number} seq
+ */
+function resultadoDaEdicao(ctx, auth, atual, corpo, agora, seq) {
+  const modalidade = 'modalidade' in corpo ? lerModalidade(corpo.modalidade) : atual.modalidade;
+  const jogadaEm = 'jogadaEm' in corpo ? lerJogadaEm(corpo.jogadaEm, agora) : atual.jogada_em;
+  const penaltis =
+    'penaltis' in corpo ? lerPenaltis(corpo.penaltis) : { penaltisA: atual.penaltis_a, penaltisB: atual.penaltis_b };
+  const placar = {
+    placarA: 'placarA' in corpo ? corpo.placarA : atual.placar_a,
+    placarB: 'placarB' in corpo ? corpo.placarB : atual.placar_b,
+    ...penaltis,
+    modalidade,
+  };
+  exigirPlacarValido(placar);
+  const ladoA =
+    corpo.ladoA === undefined
+      ? { id: atual.lado_a, criado: false }
+      : resolverLado(ctx, auth, corpo.ladoA, 'ladoA', seq);
+  const ladoB =
+    corpo.ladoB === undefined
+      ? { id: atual.lado_b, criado: false }
+      : resolverLado(ctx, auth, corpo.ladoB, 'ladoB', seq);
+  if (ladoA.id === ladoB.id) throw ladosIguais();
+  return { placar, modalidade, jogadaEm, ladoA, ladoB };
+}
+
+/**
+ * Edição com `rev` desatualizado só é conflito se o resultado pedido ainda não for o estado atual: reenvio depois de
+ * resposta perdida chega com o `rev` antigo e deve devolver o estado atual como aplicado.
  * @param {import("../tipos.js").Contexto} ctx
  * @param {import("../tipos.js").Autenticacao} auth
  * @param {string} partidaId
@@ -182,38 +211,38 @@ export function editarPartida(ctx, auth, partidaId, corpo) {
   exigirAutorOuCriador(auth, atual.criado_por);
   const rev = exigirRev(corpo.rev);
   if (atual.excluida_em !== null) throw conflito(atual, 'Partida excluída.');
-  if (rev !== atual.rev) throw conflito(atual);
-
-  const modalidade = 'modalidade' in corpo ? lerModalidade(corpo.modalidade) : atual.modalidade;
-  const jogadaEm = 'jogadaEm' in corpo ? lerJogadaEm(corpo.jogadaEm, agora) : atual.jogada_em;
-  const penaltis =
-    'penaltis' in corpo ? lerPenaltis(corpo.penaltis) : { penaltisA: atual.penaltis_a, penaltisB: atual.penaltis_b };
-  const placar = {
-    placarA: 'placarA' in corpo ? corpo.placarA : atual.placar_a,
-    placarB: 'placarB' in corpo ? corpo.placarB : atual.placar_b,
-    ...penaltis,
-    modalidade,
-  };
-  exigirPlacarValido(placar);
-
-  const mudaLados = corpo.ladoA !== undefined || corpo.ladoB !== undefined;
-  const igual =
-    placar.placarA === atual.placar_a &&
-    placar.placarB === atual.placar_b &&
-    placar.penaltisA === atual.penaltis_a &&
-    placar.penaltisB === atual.penaltis_b &&
-    modalidade === atual.modalidade &&
-    jogadaEm === atual.jogada_em;
-  if (!mudaLados && igual) {
-    const competidores = competidoresDe(banco, [atual.lado_a, atual.lado_b]);
-    return { partida: paraPartida(atual), competidores, seq: seqAtual(banco, auth.resenhaId), mudou: false };
-  }
+  const desatualizada = rev !== atual.rev;
 
   return banco.transacao(() => {
+    // O seq só avança se algo mudar; o previsto serve ao competidor novo e é descartado com o rollback.
+    const seqPrevisto = seqDaResenha(banco, auth.resenhaId) + 1;
+    /** @type {ReturnType<typeof resultadoDaEdicao>} */
+    let r;
+    try {
+      r = resultadoDaEdicao(ctx, auth, atual, corpo, agora, seqPrevisto);
+    } catch (erro) {
+      if (desatualizada && erro instanceof ErroApp) throw conflito(atual);
+      throw erro;
+    }
+    const { placar, modalidade, jogadaEm, ladoA, ladoB } = r;
+    const igual =
+      !ladoA.criado &&
+      !ladoB.criado &&
+      ladoA.id === atual.lado_a &&
+      ladoB.id === atual.lado_b &&
+      placar.placarA === atual.placar_a &&
+      placar.placarB === atual.placar_b &&
+      placar.penaltisA === atual.penaltis_a &&
+      placar.penaltisB === atual.penaltis_b &&
+      modalidade === atual.modalidade &&
+      jogadaEm === atual.jogada_em;
+    if (igual) {
+      const competidores = competidoresDe(banco, [atual.lado_a, atual.lado_b]);
+      return { partida: paraPartida(atual), competidores, seq: seqDaResenha(banco, auth.resenhaId), mudou: false };
+    }
+    if (desatualizada) throw conflito(atual);
+
     const seq = proximoSeq(banco, auth.resenhaId);
-    const ladoA = corpo.ladoA === undefined ? { id: atual.lado_a } : resolverLado(ctx, auth, corpo.ladoA, 'ladoA', seq);
-    const ladoB = corpo.ladoB === undefined ? { id: atual.lado_b } : resolverLado(ctx, auth, corpo.ladoB, 'ladoB', seq);
-    if (ladoA.id === ladoB.id) throw ladosIguais();
     banco.executar(
       `UPDATE partidas SET lado_a = ?, lado_b = ?, placar_a = ?, placar_b = ?, penaltis_a = ?, penaltis_b = ?,
               modalidade = ?, jogada_em = ?, editado_por = ?, atualizada_em = ?, rev = rev + 1, seq = ?
@@ -249,7 +278,7 @@ function alterarExclusao(ctx, auth, partidaId, rev, excluir) {
   const atual = buscarPartida(banco, auth, partidaId);
   exigirAutorOuCriador(auth, atual.criado_por);
   const jaNoEstado = (atual.excluida_em !== null) === excluir;
-  if (jaNoEstado) return { partida: paraPartida(atual), seq: seqAtual(banco, auth.resenhaId), mudou: false };
+  if (jaNoEstado) return { partida: paraPartida(atual), seq: seqDaResenha(banco, auth.resenhaId), mudou: false };
   if (exigirRev(rev) !== atual.rev) throw conflito(atual);
   return banco.transacao(() => {
     const agora = ctx.relogio();
