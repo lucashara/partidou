@@ -66,6 +66,16 @@ describe('validarNome', () => {
     assert.equal(validarNome('Ana\u3164', 10).ok, true, 'preenchimento ao lado de texto visível não invalida');
   });
 
+  test('recusa nome só com marcas combinantes ou seletores de variação', () => {
+    for (const c of ['\u034F', '\uFE0F', '\uFE00', '\u180B', '\u{E0100}', '\u0301']) {
+      assert.equal(validarNome(c.repeat(2), 10).ok, false, `U+${c.codePointAt(0).toString(16)}`);
+    }
+    assert.equal(validarNome('é', 10).ok, true);
+    assert.equal(validarNome('7', 10).ok, true);
+    assert.equal(validarNome('⚽', 10).ok, true);
+    assert.equal(validarNome('A.', 10).ok, true);
+  });
+
   test('mantém sequências de emoji com U+200D', () => {
     assert.equal(validarNome('👨‍👩‍👧', 10).ok, true);
   });
