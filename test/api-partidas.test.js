@@ -32,7 +32,7 @@ describe('lançamento de partidas', () => {
         ladoB: { nome: 'João' },
         placarA: 3,
         placarB: 2,
-        modalidade: 'fifa',
+        modalidade: 'futebol',
         jogadaEm,
       },
     });
@@ -46,7 +46,7 @@ describe('lançamento de partidas', () => {
       placarB: 2,
       penaltisA: null,
       penaltisB: null,
-      modalidade: 'fifa',
+      modalidade: 'futebol',
       jogadaEm,
       criadoPor: visita.membro.id,
       editadoPor: null,
@@ -240,10 +240,9 @@ describe('pênaltis', () => {
     assert.equal(r.status, 201);
     assert.deepEqual([r.corpo.partida.penaltisA, r.corpo.partida.penaltisB], [3, 4]);
     for (const modalidade of ['fifa', 'futebol']) {
-      assert.equal(
-        (await s.lancar(dono.token, id, { placarA: 0, placarB: 0, penaltis: { a: 1, b: 0 }, modalidade })).status,
-        201,
-      );
+      const r2 = await s.lancar(dono.token, id, { placarA: 0, placarB: 0, penaltis: { a: 1, b: 0 }, modalidade });
+      assert.equal(r2.status, 201);
+      assert.equal(r2.corpo.partida.modalidade, 'futebol', 'o identificador antigo grava como futebol');
     }
   });
 

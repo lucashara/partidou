@@ -1,4 +1,4 @@
-import { MODALIDADES } from '../../compartilhado/modalidades.js';
+import { MODALIDADES, normalizarModalidade } from '../../compartilhado/modalidades.js';
 import { validarPlacar } from '../../compartilhado/placar.js';
 import { ErroApp, naoEncontrado, requisicaoInvalida } from '../erros.js';
 import { FORMATO_ID, resolverLado } from './competidores.js';
@@ -31,10 +31,11 @@ const conflito = (atual, mensagem = 'Partida alterada em outro aparelho.') =>
  */
 function lerModalidade(valor) {
   if (valor === undefined || valor === null) return null;
-  if (typeof valor !== 'string' || !MODALIDADES.some((m) => m.id === valor)) {
+  const vigente = normalizarModalidade(valor);
+  if (typeof vigente !== 'string' || !MODALIDADES.some((m) => m.id === vigente)) {
     throw requisicaoInvalida('Modalidade desconhecida.', 'modalidade');
   }
-  return valor;
+  return vigente;
 }
 
 /**

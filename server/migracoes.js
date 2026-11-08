@@ -89,4 +89,10 @@ export const MIGRACOES = [
   ) STRICT;
   CREATE INDEX idx_partidas_resenha_seq ON partidas(resenha_id, seq);
   `,
+  // A modalidade FIFA deixou de existir: vira Futebol. O seq novo faz os aparelhos baixarem as partidas alteradas.
+  `
+  UPDATE resenhas SET seq = seq + 1 WHERE id IN (SELECT resenha_id FROM partidas WHERE modalidade = 'fifa');
+  UPDATE partidas SET modalidade = 'futebol', seq = (SELECT seq FROM resenhas WHERE id = partidas.resenha_id)
+    WHERE modalidade = 'fifa';
+  `,
 ];

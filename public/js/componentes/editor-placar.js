@@ -1,7 +1,7 @@
 // Editor da súmula: dois lados com nome livre, placar final, pênaltis (só em empate) e modalidade.
 // Serve ao lançamento e à edição; não conhece rede nem armazenamento.
 
-import { aceitaPenaltis, MODALIDADES } from '../../../compartilhado/modalidades.js';
+import { aceitaPenaltis, MODALIDADES, modalidadePorId } from '../../../compartilhado/modalidades.js';
 import { chaveDeNome, LIMITES, normalizarNome } from '../../../compartilhado/nomes.js';
 import { icone } from '../icones.js';
 import { h, trocarFilhos } from '../util.js';
@@ -27,7 +27,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
     placar: { a: 0, b: 0 },
     tocado: false,
     penaltis: /** @type {{ a: number, b: number } | null} */ (null),
-    modalidade: modalidadeInicial,
+    modalidade: modalidadePorId(modalidadeInicial)?.id ?? null,
   };
   const refs = { a: montarLado('a'), b: montarLado('b') };
   const blocoPenaltis = h('div', { class: 'penaltis-bloco', hidden: true });
@@ -404,7 +404,7 @@ export function criarEditorPlacar({ aoMudar = () => {}, modalidadeInicial = null
       refs.b.numeral.value = String(partida.placarB);
       estado.tocado = true;
       estado.penaltis = partida.penaltis ? { ...partida.penaltis } : null;
-      estado.modalidade = partida.modalidade ?? null;
+      estado.modalidade = modalidadePorId(partida.modalidade)?.id ?? null;
       seletor.value = estado.modalidade ?? '';
       modoPenaltis = 'forcar';
       renderPenaltis();

@@ -36,6 +36,46 @@ describe('persistência', () => {
     }
   });
 
+  test('a migração da modalidade troca fifa por futebol, avança o seq e poupa as demais', () => {
+    const caminho = join(pasta, 'v1.db');
+    const v1 = new DatabaseSync(caminho);
+    v1.exec(MIGRACOES[0]);
+    v1.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 1`);
+    v1.exec(`
+      INSERT INTO resenhas (id, nome, seq, chave_recuperacao_hash, criada_em) VALUES
+        ('r-com-fifa', 'Com FIFA', 5, 'h1', 1), ('r-sem-fifa', 'Sem FIFA', 3, 'h2', 1);
+      INSERT INTO membros (id, resenha_id, apelido, apelido_chave, papel, criado_em, seq) VALUES
+        ('m1', 'r-com-fifa', 'A', 'a', 'criador', 1, 1), ('m2', 'r-sem-fifa', 'B', 'b', 'criador', 1, 1);
+      INSERT INTO competidores (id, resenha_id, nome, nome_chave, criado_por, criado_em, seq) VALUES
+        ('c1-aaaaaaaaaaaaaaaa', 'r-com-fifa', 'X', 'x', 'm1', 1, 1), ('c2-aaaaaaaaaaaaaaaa', 'r-com-fifa', 'Y', 'y', 'm1', 1, 1),
+        ('c3-aaaaaaaaaaaaaaaa', 'r-sem-fifa', 'X', 'x', 'm2', 1, 1), ('c4-aaaaaaaaaaaaaaaa', 'r-sem-fifa', 'Y', 'y', 'm2', 1, 1);
+      INSERT INTO partidas (id, resenha_id, lado_a, lado_b, placar_a, placar_b, modalidade, jogada_em, criado_por, criada_em, atualizada_em, seq) VALUES
+        ('p1-aaaaaaaaaaaaaaaa', 'r-com-fifa', 'c1-aaaaaaaaaaaaaaaa', 'c2-aaaaaaaaaaaaaaaa', 1, 0, 'fifa', 1, 'm1', 1, 1, 4),
+        ('p2-aaaaaaaaaaaaaaaa', 'r-com-fifa', 'c1-aaaaaaaaaaaaaaaa', 'c2-aaaaaaaaaaaaaaaa', 2, 0, 'outro', 1, 'm1', 1, 1, 5),
+        ('p3-aaaaaaaaaaaaaaaa', 'r-sem-fifa', 'c3-aaaaaaaaaaaaaaaa', 'c4-aaaaaaaaaaaaaaaa', 2, 2, 'volei-areia', 1, 'm2', 1, 1, 3),
+        ('p4-aaaaaaaaaaaaaaaa', 'r-com-fifa', 'c2-aaaaaaaaaaaaaaaa', 'c1-aaaaaaaaaaaaaaaa', 0, 1, 'fifa', 1, 'm1', 1, 1, 3);
+    `);
+    v1.close();
+    const banco = abrirBanco(caminho);
+    try {
+      const modalidade = (id) => banco.um('SELECT modalidade, seq, rev FROM partidas WHERE id = ?', id);
+      assert.deepEqual({ ...modalidade('p1-aaaaaaaaaaaaaaaa') }, { modalidade: 'futebol', seq: 6, rev: 1 });
+      assert.deepEqual({ ...modalidade('p2-aaaaaaaaaaaaaaaa') }, { modalidade: 'outro', seq: 5, rev: 1 });
+      assert.deepEqual({ ...modalidade('p3-aaaaaaaaaaaaaaaa') }, { modalidade: 'volei-areia', seq: 3, rev: 1 });
+      assert.deepEqual({ ...modalidade('p4-aaaaaaaaaaaaaaaa') }, { modalidade: 'futebol', seq: 6, rev: 1 });
+      const novas = banco.todos('SELECT id FROM partidas WHERE resenha_id = ? AND seq > 5 ORDER BY id', 'r-com-fifa');
+      assert.deepEqual(
+        novas.map((l) => l.id),
+        ['p1-aaaaaaaaaaaaaaaa', 'p4-aaaaaaaaaaaaaaaa'],
+        'quem estava em seq 5 baixa só as partidas alteradas',
+      );
+      assert.equal(banco.um('SELECT seq FROM resenhas WHERE id = ?', 'r-com-fifa').seq, 6);
+      assert.equal(banco.um('SELECT seq FROM resenhas WHERE id = ?', 'r-sem-fifa').seq, 3);
+    } finally {
+      banco.fechar();
+    }
+  });
+
   test('o esquema nasce com os pragmas do contrato', () => {
     const banco = abrirBanco(':memory:');
     try {

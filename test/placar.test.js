@@ -1,7 +1,7 @@
 // @ts-nocheck: testes usam objetos de resposta dinâmicos; os tipos do servidor são conferidos em server/.
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { aceitaPenaltis, MODALIDADES, modalidadePorId } from '../compartilhado/modalidades.js';
+import { aceitaPenaltis, MODALIDADES, modalidadePorId, normalizarModalidade } from '../compartilhado/modalidades.js';
 import { resultadoNormal, validarPlacar, vencedorFinal } from '../compartilhado/placar.js';
 
 const ok = { ok: true };
@@ -55,8 +55,8 @@ describe('validarPlacar', () => {
 
   test('modalidade sem pênaltis recusa a disputa', () => {
     const base = { placarA: 1, placarB: 1, penaltisA: 3, penaltisB: 2 };
-    assert.deepEqual(validarPlacar({ ...base, modalidade: 'fifa' }), ok);
     assert.deepEqual(validarPlacar({ ...base, modalidade: 'futebol' }), ok);
+    assert.deepEqual(validarPlacar({ ...base, modalidade: 'fifa' }), ok, 'identificador antigo vale como futebol');
     assert.deepEqual(validarPlacar({ ...base, modalidade: null }), ok);
     assert.equal(validarPlacar({ ...base, modalidade: 'volei-quadra' }).ok, false);
     assert.equal(validarPlacar({ ...base, modalidade: 'outro' }).ok, false);
@@ -89,7 +89,6 @@ describe('modalidades', () => {
     assert.deepEqual(
       MODALIDADES.map((m) => [m.id, m.penaltis]),
       [
-        ['fifa', true],
         ['futebol', true],
         ['volei-quadra', false],
         ['volei-areia', false],
@@ -99,7 +98,11 @@ describe('modalidades', () => {
   });
 
   test('modalidadePorId e aceitaPenaltis', () => {
-    assert.equal(modalidadePorId('fifa')?.nome, 'FIFA');
+    assert.equal(modalidadePorId('fifa')?.nome, 'Futebol');
+    assert.equal(normalizarModalidade('fifa'), 'futebol');
+    assert.equal(normalizarModalidade('futebol'), 'futebol');
+    assert.equal(normalizarModalidade(null), null);
+    assert.equal(normalizarModalidade('toString'), 'toString');
     assert.equal(modalidadePorId('xadrez'), null);
     assert.equal(aceitaPenaltis(undefined), true);
     assert.equal(aceitaPenaltis(null), true);
