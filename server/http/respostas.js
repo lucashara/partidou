@@ -49,4 +49,6 @@ export function enviarErro(res, erro, cabecalhos) {
 
 export const erroInterno = () => new ErroApp(500, 'ERRO_INTERNO', 'Erro interno.');
 export const muitasTentativas = (/** @type {number} */ retryAfter) =>
-  new ErroApp(429, 'MUITAS_TENTATIVAS', 'Muitas tentativas. Aguarde antes de tentar novamente.', { retryAfter });
+  new ErroApp(429, 'MUITAS_TENTATIVAS', 'Muitas tentativas. Nova tentativa permitida após o intervalo indicado.', {
+    retryAfter,
+  });

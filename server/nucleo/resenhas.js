@@ -34,7 +34,11 @@ export function criarResenha(ctx, entrada) {
     const total = banco.um('SELECT count(*) AS n FROM resenhas')?.n ?? 0;
     const recentes = banco.um('SELECT count(*) AS n FROM resenhas WHERE criada_em > ?', agora - DIA_MS)?.n ?? 0;
     if (total >= config.maxResenhas || recentes >= config.maxCriacoesDia) {
-      throw new ErroApp(403, 'LIMITE_ATINGIDO', 'Limite de criação de resenhas atingido. Tente novamente mais tarde.');
+      throw new ErroApp(
+        403,
+        'LIMITE_ATINGIDO',
+        'Limite de criação de resenhas atingido. Nova criação permitida mais tarde.',
+      );
     }
     const chave = novoSegredo(TAMANHOS.chaveRecuperacao, 5);
     const resenhaId = gerarIdResenha();

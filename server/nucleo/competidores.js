@@ -43,7 +43,7 @@ export function resolverLado(ctx, auth, lado, campo, seq) {
     if (porId) return { id: porId.id, nome: porId.nome, criado: false };
   }
   if (lado.nome === undefined || lado.nome === null) {
-    throw requisicaoInvalida('Informe o nome ou o identificador do competidor.', `${campo}.nome`);
+    throw requisicaoInvalida('Nome ou identificador do competidor obrigatório.', `${campo}.nome`);
   }
   const nome = nomeObrigatorio(lado.nome, LIMITES.competidor, `${campo}.nome`);
   const chave = chaveDeNome(nome);
