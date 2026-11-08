@@ -1,5 +1,7 @@
 // Limites em memória por IP e por sessão. Reiniciar o processo zera os contadores (aceito: o segredo
 // atacado tem 60 bits ou mais). Todo mapa tem teto de tamanho e varredura periódica de expirados.
+import { chaveDeLimite } from './enderecos.js';
+
 const MINUTO = 60_000;
 const HORA = 60 * MINUTO;
 
@@ -12,7 +14,7 @@ export const LIMITES_PADRAO = {
   bloqueioBaseS: 30,
   bloqueioMaxS: 3600,
   esquecerFalhasMs: 24 * HORA,
-  disjuntorFalhasPorHora: 2000,
+  disjuntorFalhasPorHora: 20_000,
   disjuntorBloqueioMs: 5 * MINUTO,
   tetoMapa: 20_000,
   varreduraMs: MINUTO,
@@ -73,9 +75,9 @@ export function criarLimitador({ relogio = Date.now, limites = {} } = {}) {
 
   const limitador = {
     /** Criação de resenha por IP (5 por hora). Devolve segundos de espera, 0 se liberado. */
-    criacao: (/** @type {string} */ ip) => criacao.consumir(ip),
+    criacao: (/** @type {string} */ ip) => criacao.consumir(chaveDeLimite(ip)),
     /** Requisição sem sessão válida por IP (60 por minuto). */
-    semToken: (/** @type {string} */ ip) => semToken.consumir(ip),
+    semToken: (/** @type {string} */ ip) => semToken.consumir(chaveDeLimite(ip)),
     /** Requisição de uma sessão: escrita ou leitura. */
     sessao: (/** @type {string} */ hash, /** @type {boolean} */ ehEscrita) =>
       (ehEscrita ? escrita : leitura).consumir(hash),
@@ -84,11 +86,12 @@ export function criarLimitador({ relogio = Date.now, limites = {} } = {}) {
     bloqueioDeCodigo(/** @type {string} */ ip) {
       const agora = relogio();
       const global = disjuntor.ate > agora ? Math.ceil((disjuntor.ate - agora) / 1000) : 0;
-      return Math.max(bloqueioDoIp(ip, agora), global);
+      return Math.max(bloqueioDoIp(chaveDeLimite(ip), agora), global);
     },
 
     /** Registra código inválido: bloqueio crescente por IP e contagem para o disjuntor. */
-    falhaDeCodigo(/** @type {string} */ ip) {
+    falhaDeCodigo(/** @type {string} */ origem) {
+      const ip = chaveDeLimite(origem);
       const agora = relogio();
       let e = falhas.get(ip);
       if (e && agora - e.ultima > L.esquecerFalhasMs) e = undefined;

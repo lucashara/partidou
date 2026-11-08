@@ -73,7 +73,7 @@ describe('permissões', () => {
     assert.equal((await s.chamar('POST', `${base}/restaurar`, { token: dono.token, corpo: { rev: 3 } })).status, 200);
   });
 
-  test('participante renomeia só o competidor que criou; criador renomeia qualquer um', async () => {
+  test('renomear competidor é restrito ao criador da resenha, mesmo para quem o criou', async () => {
     const { dono, visita, id } = await s.resenhaComDois();
     const doDono = (await s.lancar(dono.token, id, { ladoA: { nome: 'Alfa' }, ladoB: { nome: 'Beta' } })).corpo;
     const daVisita = (await s.lancar(visita.token, id, { ladoA: { nome: 'Gama' }, ladoB: { nome: 'Alfa' } })).corpo;
@@ -81,23 +81,20 @@ describe('permissões', () => {
     const gama = daVisita.competidores.find((c) => c.nome === 'Gama');
     assert.equal(daVisita.competidores.find((c) => c.nome === 'Alfa').id, alfa.id);
 
-    negado(
-      await s.chamar('PATCH', `/api/resenhas/${id}/competidores/${alfa.id}`, {
-        token: visita.token,
-        corpo: { nome: 'Golpe' },
-      }),
-    );
-    const proprio = await s.chamar('PATCH', `/api/resenhas/${id}/competidores/${gama.id}`, {
-      token: visita.token,
-      corpo: { nome: 'Gamma' },
-    });
-    assert.equal(proprio.status, 200);
-    assert.equal(proprio.corpo.competidor.nome, 'Gamma');
+    for (const alvo of [alfa, gama]) {
+      negado(
+        await s.chamar('PATCH', `/api/resenhas/${id}/competidores/${alvo.id}`, {
+          token: visita.token,
+          corpo: { nome: 'Golpe' },
+        }),
+      );
+    }
     const criador = await s.chamar('PATCH', `/api/resenhas/${id}/competidores/${gama.id}`, {
       token: dono.token,
       corpo: { nome: 'Delta' },
     });
     assert.equal(criador.status, 200);
+    assert.equal(criador.corpo.competidor.nome, 'Delta');
   });
 
   test('renomear competidor: conflito por chave de nome e seq', async () => {

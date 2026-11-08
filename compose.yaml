@@ -19,7 +19,8 @@ services:
       TRUST_PROXY: cloudflare
       # Gateway da rede abaixo: é o endereço de origem que o container enxerga no tráfego do túnel.
       PROXY_CONFIAVEL: 172.29.91.1
-      NODE_OPTIONS: --max-old-space-size=96
+      # Heap e limite sobem juntos: o GET /estado de uma resenha cheia (5000 partidas) chega a ~2 MB.
+      NODE_OPTIONS: --max-old-space-size=160
     volumes:
       - ./data:/dados
       - ./logs:/logs
@@ -30,8 +31,8 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    mem_limit: 160m
-    memswap_limit: 160m
+    mem_limit: 256m
+    memswap_limit: 256m
     cpus: 0.5
     pids_limit: 64
     stop_grace_period: 15s

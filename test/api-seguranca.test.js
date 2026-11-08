@@ -175,6 +175,30 @@ describe('origem do cliente', () => {
     assert.equal(origemDe(req('172.29.91.9', cabecalhos), cf), '172.29.91.9');
   });
 
+  test('PROXY_CONFIAVEL confia no gateway também na grafia IPv4 mapeado em IPv6', () => {
+    const cabecalhos = { 'cf-connecting-ip': '198.51.100.1' };
+    const cf = lerConfiguracao({ TRUST_PROXY: 'cloudflare', PROXY_CONFIAVEL: '172.29.91.1' });
+    assert.equal(origemDe(req('::ffff:172.29.91.1', cabecalhos), cf), '198.51.100.1');
+    const mapeado = lerConfiguracao({ TRUST_PROXY: 'cloudflare', PROXY_CONFIAVEL: '::ffff:172.29.91.1' });
+    assert.equal(origemDe(req('172.29.91.1', cabecalhos), mapeado), '198.51.100.1');
+  });
+
+  test('CF-Connecting-IP por socket não confiável gera um único aviso por registro', () => {
+    const avisos = [];
+    const registro = { info() {}, erro() {}, aviso: (evento, dados) => avisos.push([evento, dados]) };
+    const cf = lerConfiguracao({ TRUST_PROXY: 'cloudflare' });
+    const cabecalhos = { 'cf-connecting-ip': '198.51.100.1' };
+    assert.equal(origemDe(req('203.0.113.9', cabecalhos), cf, registro), '203.0.113.9');
+    assert.equal(origemDe(req('203.0.113.10', cabecalhos), cf, registro), '203.0.113.10');
+    assert.deepEqual(avisos, [['cf_connecting_ip_ignorado', { socket: '203.0.113.9' }]]);
+    origemDe(req('203.0.113.9', {}), cf, { ...registro, aviso: () => assert.fail('sem cabeçalho não avisa') });
+    origemDe(req('203.0.113.9', cabecalhos), lerConfiguracao({}), {
+      ...registro,
+      aviso: () => assert.fail('sem TRUST_PROXY não avisa'),
+    });
+    origemDe(req('127.0.0.1', cabecalhos), cf, { ...registro, aviso: () => assert.fail('socket confiável não avisa') });
+  });
+
   test('PROXY_CONFIAVEL só aceita endereços IP', () => {
     assert.throws(() => lerConfiguracao({ PROXY_CONFIAVEL: '172.29.91.0/24' }), /PROXY_CONFIAVEL inválida/);
     assert.throws(() => lerConfiguracao({ PROXY_CONFIAVEL: 'localhost' }), /PROXY_CONFIAVEL inválida/);

@@ -1,9 +1,6 @@
 import { permissaoNegada } from '../erros.js';
 
-/**
- * @param {{ papel: string }} auth
- * @param {import("../tipos.js").Autenticacao} auth
- */
+/** @param {import("../tipos.js").Autenticacao} auth */
 export function exigirCriador(auth) {
   if (auth.papel !== 'criador') throw permissaoNegada('Ação restrita ao criador da resenha.');
 }

@@ -1,7 +1,7 @@
 import { chaveDeNome, LIMITES } from '../../compartilhado/nomes.js';
 import { ErroApp, naoEncontrado, requisicaoInvalida } from '../erros.js';
 import { paraCompetidor } from './modelos.js';
-import { exigirAutorOuCriador } from './permissoes.js';
+import { exigirCriador } from './permissoes.js';
 import { proximoSeq } from './seq.js';
 import { gerarIdUuid } from './tokens.js';
 import { nomeObrigatorio } from './validacao.js';
@@ -83,7 +83,7 @@ export function renomearCompetidor(ctx, auth, competidorId, nome) {
   const { banco } = ctx;
   const atual = banco.um('SELECT * FROM competidores WHERE id = ? AND resenha_id = ?', competidorId, auth.resenhaId);
   if (!atual) throw naoEncontrado('Competidor não encontrado.');
-  exigirAutorOuCriador(auth, atual.criado_por);
+  exigirCriador(auth);
   const novoNome = nomeObrigatorio(nome, LIMITES.competidor, 'nome');
   const chave = chaveDeNome(novoNome);
   return banco.transacao(() => {

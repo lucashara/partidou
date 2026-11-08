@@ -2,7 +2,7 @@
 import { ErroApp } from '../erros.js';
 import { autenticar } from '../nucleo/acesso.js';
 import { cabecalhosBase } from './cabecalhos.js';
-import { lerCorpoJson } from './corpo.js';
+import { CLIENTE_DESCONECTOU, lerCorpoJson } from './corpo.js';
 import { origemDe } from './origem.js';
 import { enviarErro, enviarJson, enviarSemConteudo, erroInterno, muitasTentativas } from './respostas.js';
 import { casar, RESPOSTA_DIRETA } from './rotas/definicao.js';
@@ -49,7 +49,7 @@ export function criarApp(ctx) {
     registroDaRequisicao.rota = encontrada?.rota.caminho ?? '/api/(desconhecida)';
     if (!encontrada) throw new ErroApp(404, 'NAO_ENCONTRADO', 'Recurso não encontrado.');
     const { rota, params } = encontrada;
-    const ip = origemDe(req, config);
+    const ip = origemDe(req, config, registro);
     registroDaRequisicao.ip = ip;
 
     /** @type {import('../nucleo/acesso.js').Autenticacao | null} */
@@ -109,6 +109,11 @@ export function criarApp(ctx) {
    * @param {DadosLog} registroDaRequisicao
    */
   function responderErro(res, e, registroDaRequisicao) {
+    if (e instanceof ErroApp && e.codigo === CLIENTE_DESCONECTOU) {
+      registro.info('cliente_desconectou', { rota: registroDaRequisicao.rota });
+      res.destroy();
+      return;
+    }
     const erro = e instanceof ErroApp ? e : erroInterno();
     if (!(e instanceof ErroApp)) {
       registro.erro('erro_interno', {

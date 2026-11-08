@@ -24,11 +24,11 @@ export function validarNovaResenha({ nome, apelido }) {
 /**
  * Cria a resenha, o criador, a primeira sessão e o primeiro convite numa única transação.
  * @param {import("../tipos.js").Contexto} ctx
- * @param {Record<string, any>} entrada
+ * @param {ReturnType<typeof validarNovaResenha>} entrada já validada por `validarNovaResenha`
  */
 export function criarResenha(ctx, entrada) {
   const { banco, config } = ctx;
-  const { nome: nomeResenha, apelido: nomeApelido } = validarNovaResenha(entrada);
+  const { nome: nomeResenha, apelido: nomeApelido } = entrada;
   return banco.transacao(() => {
     const agora = ctx.relogio();
     const total = banco.um('SELECT count(*) AS n FROM resenhas')?.n ?? 0;

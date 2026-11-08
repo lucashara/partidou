@@ -35,6 +35,16 @@ describe('recuperação de acesso', () => {
     assert.equal((await s.chamar('GET', `/api/resenhas/${id}/estado`, { token: visita.token })).status, 200);
   });
 
+  test('recuperar apaga a transferência pendente do criador', async () => {
+    const dono = await s.criarResenha();
+    const g = await s.chamar('POST', '/api/acesso/transferencia', { token: dono.token });
+    assert.equal(g.status, 201);
+    assert.equal((await recuperar(dono.chaveRecuperacao)).status, 200);
+    const u = await s.chamar('POST', '/api/acesso/transferencia/usar', { corpo: { codigo: g.corpo.codigo } });
+    assert.equal(u.status, 404);
+    assert.equal(s.ctx.banco.um('SELECT count(*) AS n FROM transferencias').n, 0);
+  });
+
   test('rotaciona: a chave anterior deixa de valer e a nova funciona uma vez por rotação', async () => {
     const dono = await s.criarResenha();
     const primeira = await recuperar(dono.chaveRecuperacao);

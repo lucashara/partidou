@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { abrirBanco } from './banco.js';
 import { criarEstaticos } from './estaticos.js';
 import { criarEventos } from './eventos.js';
+import { criarFaxina } from './faxina.js';
 import { criarApp } from './http/app.js';
 import { criarLimitador } from './limitador.js';
 import { criarRegistro } from './registro.js';
@@ -27,6 +28,7 @@ export function criarServidor(config, opcoes = {}) {
     { recarregar: config.dev },
   );
   const ctx = { banco, config, relogio, eventos, limitador, registro, estaticos };
+  const faxina = criarFaxina(ctx);
   const http = createServer(criarApp(ctx));
   http.keepAliveTimeout = 65_000;
 
@@ -40,6 +42,7 @@ export function criarServidor(config, opcoes = {}) {
         http.listen(porta, host, () => {
           http.off('error', rejeitar);
           const endereco = /** @type {import('node:net').AddressInfo} */ (http.address());
+          faxina.executar();
           registro.info('iniciado', { porta: endereco.port, host, ativos: estaticos.versao() });
           resolver(endereco.port);
         });
@@ -49,6 +52,7 @@ export function criarServidor(config, opcoes = {}) {
     async encerrar() {
       eventos.encerrar();
       limitador.encerrar();
+      faxina.encerrar();
       await new Promise((resolver) => {
         http.close(() => resolver(undefined));
         http.closeIdleConnections();

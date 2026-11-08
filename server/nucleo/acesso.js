@@ -114,6 +114,8 @@ export function recuperar(ctx, chaveTexto) {
     );
     if (!criador) throw chaveInvalida();
     revogarSessoesDoMembro(banco, criador.id, agora);
+    // Código de transferência emitido antes da recuperação não pode abrir sessão nova depois dela.
+    banco.executar('DELETE FROM transferencias WHERE membro_id = ?', criador.id);
     const token = criarSessao(banco, criador.id, agora);
     const chave = novoSegredo(TAMANHOS.chaveRecuperacao, 5);
     banco.executar('UPDATE resenhas SET chave_recuperacao_hash = ? WHERE id = ?', chave.hash, resenha.id);

@@ -1,6 +1,7 @@
 import { ErroApp, requisicaoInvalida } from '../erros.js';
 
 export const LIMITE_CORPO = 16 * 1024;
+export const CLIENTE_DESCONECTOU = 'CLIENTE_DESCONECTOU';
 
 /** O corpo não foi lido por inteiro: a conexão precisa fechar depois da resposta. */
 function corpoGrande() {
@@ -22,10 +23,16 @@ export async function lerCorpoJson(req) {
   }
   const partes = [];
   let total = 0;
-  for await (const parte of req) {
-    total += parte.length;
-    if (total > LIMITE_CORPO) throw corpoGrande();
-    partes.push(parte);
+  try {
+    for await (const parte of req) {
+      total += parte.length;
+      if (total > LIMITE_CORPO) throw corpoGrande();
+      partes.push(parte);
+    }
+  } catch (e) {
+    if (e instanceof ErroApp) throw e;
+    // Upload interrompido pelo cliente não é falha do servidor.
+    throw new ErroApp(400, CLIENTE_DESCONECTOU, 'Conexão encerrada antes do fim do corpo.', { fecharConexao: true });
   }
   if (total === 0) return {};
   let valor;

@@ -1,7 +1,8 @@
 // @ts-nocheck: testes usam objetos de resposta dinâmicos; os tipos do servidor são conferidos em server/.
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { criarLimitador } from '../server/limitador.js';
+import { lerConfiguracao } from '../server/configuracao.js';
+import { criarLimitador, LIMITES_PADRAO } from '../server/limitador.js';
 import { iniciarServidor, relogioControlavel } from './ajuda/servidor.js';
 
 const MINUTO = 60_000;
@@ -188,6 +189,29 @@ describe('limitador por IP e por sessão', () => {
     } finally {
       l.encerrar();
     }
+  });
+
+  test('IPv6 é agregado pelo /64 e o IPv4 mapeado conta como IPv4', () => {
+    const l = criarLimitador({ limites: { criacaoPorHora: 2 } });
+    try {
+      assert.equal(l.criacao('2001:db8:1:2::1'), 0);
+      assert.equal(l.criacao('2001:db8:1:2:aaaa:bbbb:cccc:dddd'), 0);
+      assert.ok(l.criacao('2001:db8:1:2::99') > 0, 'mesmo /64 divide o limite');
+      assert.equal(l.criacao('2001:db8:1:3::1'), 0, 'outro /64 tem limite próprio');
+      assert.equal(l.criacao('203.0.113.9'), 0);
+      assert.equal(l.criacao('::ffff:203.0.113.9'), 0);
+      assert.ok(l.criacao('203.0.113.9') > 0, 'IPv4 e a forma mapeada dividem o limite');
+      for (let i = 0; i < 8; i++) l.falhaDeCodigo(`2001:db8:9:9:${i}::1`);
+      assert.ok(l.bloqueioDeCodigo('2001:db8:9:9:ffff::2') > 0, 'falhas no /64 bloqueiam todo o prefixo');
+      assert.equal(l.bloqueioDeCodigo('2001:db8:9:8::1'), 0);
+    } finally {
+      l.encerrar();
+    }
+  });
+
+  test('padrões: disjuntor em 20000 falhas por hora e MAX_PARTIDAS em 5000', async () => {
+    assert.equal(LIMITES_PADRAO.disjuntorFalhasPorHora, 20_000);
+    assert.equal(lerConfiguracao({}).maxPartidas, 5000);
   });
 
   test('mapas têm teto de tamanho e a varredura remove os expirados', () => {

@@ -55,6 +55,17 @@ describe('validarNome', () => {
     assert.equal(validarNome('Ana​x', 20).ok, false);
   });
 
+  test('recusa nome sem nenhum caractere visível, com mensagem de sistema', () => {
+    const invisiveis = ['\u3164', '\u2800', '\u115F', '\u1160', '\uFFA0', '\u00A0', '\u2003', '\u200B', '\u200D'];
+    for (const c of invisiveis) {
+      const r = validarNome(c.repeat(3), 10);
+      assert.equal(r.ok, false, `U+${c.codePointAt(0).toString(16)}`);
+      assert.match(r.mensagem, /^Nome (obrigatório|sem caracteres visíveis|com caracteres não permitidos)\.$/);
+    }
+    assert.equal(validarNome('\u3164\u2800', 10).mensagem, 'Nome sem caracteres visíveis.');
+    assert.equal(validarNome('Ana\u3164', 10).ok, true, 'preenchimento ao lado de texto visível não invalida');
+  });
+
   test('mantém sequências de emoji com U+200D', () => {
     assert.equal(validarNome('👨‍👩‍👧', 10).ok, true);
   });

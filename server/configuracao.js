@@ -1,6 +1,7 @@
 import { isIP } from 'node:net';
+import { normalizarEndereco } from './enderecos.js';
 
-const PROXIES_LOCAIS = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
+const PROXIES_LOCAIS = ['127.0.0.1', '::1'];
 
 /**
  * @typedef {object} Configuracao
@@ -52,7 +53,8 @@ export function lerConfiguracao(env = process.env) {
     .filter(Boolean);
   if (informados.some((ip) => !isIP(ip)))
     throw new Error('Variável PROXY_CONFIAVEL inválida: use endereços IP separados por vírgula.');
-  const proxiesConfiaveis = new Set(informados.length > 0 ? informados : PROXIES_LOCAIS);
+  // `::ffff:a.b.c.d` e `a.b.c.d` são o mesmo par; a comparação em origemDe também normaliza o socket.
+  const proxiesConfiaveis = new Set((informados.length > 0 ? informados : PROXIES_LOCAIS).map(normalizarEndereco));
   return {
     port: inteiro(env, 'PORT', 8791, 1, 65535),
     host: env.HOST || '127.0.0.1',
@@ -65,6 +67,7 @@ export function lerConfiguracao(env = process.env) {
     maxCriacoesDia: inteiro(env, 'MAX_CRIACOES_DIA', 300, 1),
     maxMembros: inteiro(env, 'MAX_MEMBROS', 30, 1),
     maxCompetidores: inteiro(env, 'MAX_COMPETIDORES', 60, 1),
-    maxPartidas: inteiro(env, 'MAX_PARTIDAS', 20000, 1),
+    // O GET /estado devolve todas as partidas; 20000 chegava a 7,5 MB por resposta.
+    maxPartidas: inteiro(env, 'MAX_PARTIDAS', 5000, 1),
   };
 }
