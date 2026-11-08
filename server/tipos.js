@@ -6,6 +6,7 @@
  * @typedef {ReturnType<typeof import('./eventos.js').criarEventos>} Eventos
  * @typedef {ReturnType<typeof import('./limitador.js').criarLimitador>} Limitador
  * @typedef {ReturnType<typeof import('./estaticos.js').criarEstaticos>} Estaticos
+ * @typedef {ReturnType<typeof import('./http/portao.js').criarPortao>} Portao
  *
  * @typedef {object} Contexto Serviços compartilhados entre o núcleo e a camada HTTP.
  * @property {Banco} banco
@@ -15,6 +16,7 @@
  * @property {Limitador} limitador
  * @property {Registro} registro
  * @property {Estaticos} estaticos
+ * @property {Portao} portaoDeEstado respostas de estado em andamento
  */
 
 export {};

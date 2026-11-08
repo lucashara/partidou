@@ -7,7 +7,8 @@ import { RESPOSTA_DIRETA, rota } from './definicao.js';
 
 export function rotasResenhas() {
   return [
-    rota('GET', '/api/resenhas/:id/estado', {}, ({ ctx, auth, query }) => {
+    rota('GET', '/api/resenhas/:id/estado', {}, ({ ctx, res, auth, query }) => {
+      if (!ctx.portaoDeEstado.entrar(res)) throw muitasTentativas(2);
       const bruto = query.get('desde');
       const desde = bruto !== null && /^\d+$/.test(bruto) ? Number(bruto) : undefined;
       return { status: 200, corpo: obterEstado(ctx, auth, desde) };

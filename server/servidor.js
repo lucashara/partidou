@@ -6,15 +6,18 @@ import { criarEstaticos } from './estaticos.js';
 import { criarEventos } from './eventos.js';
 import { criarFaxina } from './faxina.js';
 import { criarApp } from './http/app.js';
+import { criarPortao } from './http/portao.js';
 import { criarLimitador } from './limitador.js';
 import { criarRegistro } from './registro.js';
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url));
+// Estado completo de 5000 partidas tem cerca de 2 MB: 16 respostas ao mesmo tempo cabem folgadas no heap de 160 MB.
+const ESTADOS_SIMULTANEOS = 16;
 
 /**
  * @param {import('./configuracao.js').Configuracao} config
  * @param {{ relogio?: () => number, registro?: import('./registro.js').Registro, espelhoDoRegistro?: boolean,
- *   limites?: object, conexoesSse?: object, diretorios?: { publico: string, compartilhado: string } }} [opcoes]
+ *   limites?: object, conexoesSse?: object, estadosSimultaneos?: number, diretorios?: { publico: string, compartilhado: string } }} [opcoes]
  */
 export function criarServidor(config, opcoes = {}) {
   const relogio = opcoes.relogio ?? Date.now;
@@ -27,7 +30,8 @@ export function criarServidor(config, opcoes = {}) {
     opcoes.diretorios ?? { publico: `${RAIZ}public`, compartilhado: `${RAIZ}compartilhado` },
     { recarregar: config.dev },
   );
-  const ctx = { banco, config, relogio, eventos, limitador, registro, estaticos };
+  const portaoDeEstado = criarPortao(opcoes.estadosSimultaneos ?? ESTADOS_SIMULTANEOS);
+  const ctx = { banco, config, relogio, eventos, limitador, registro, estaticos, portaoDeEstado };
   const faxina = criarFaxina(ctx);
   const http = createServer(criarApp(ctx));
   http.keepAliveTimeout = 65_000;
