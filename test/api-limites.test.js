@@ -191,6 +191,18 @@ describe('limitador por IP e por sessão', () => {
     }
   });
 
+  test('disjuntor: uma origem sozinha, mesmo girando /64 dentro do /48, não o dispara', () => {
+    const l = criarLimitador({ limites: { disjuntorFalhasPorHora: 50, disjuntorFalhasPorOrigem: 10 } });
+    try {
+      for (let i = 0; i < 200; i++) l.falhaDeCodigo(`2001:db8:7:${i.toString(16)}::1`);
+      assert.equal(l.bloqueioDeCodigo('198.51.100.7'), 0, 'um /48 contribui no máximo com 10 falhas');
+      for (let i = 0; i < 49; i++) l.falhaDeCodigo(`2001:db8:${(i + 100).toString(16)}::1`);
+      assert.ok(l.bloqueioDeCodigo('198.51.100.7') > 0, 'origens distintas somam e disparam');
+    } finally {
+      l.encerrar();
+    }
+  });
+
   test('IPv6 é agregado pelo /64 e o IPv4 mapeado conta como IPv4', () => {
     const l = criarLimitador({ limites: { criacaoPorHora: 2 } });
     try {

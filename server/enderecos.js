@@ -30,6 +30,19 @@ export function normalizarEndereco(ip) {
 }
 
 /**
+ * Chave de quem alimenta o disjuntor: IPv4 inteiro; IPv6 pelo prefixo /48, que um único assinante pode girar em /64.
+ * @param {string} ip
+ */
+export function chaveDeDisjuntor(ip) {
+  const normal = normalizarEndereco(ip);
+  if (isIP(normal) !== 6) return normal;
+  return `${gruposIpv6(normal)
+    .slice(0, 3)
+    .map((g) => g.toString(16))
+    .join(':')}::/48`;
+}
+
+/**
  * Chave do limite por IP: IPv4 inteiro; IPv6 pelo prefixo /64, que é o que um assinante controla.
  * @param {string} ip
  */

@@ -1,6 +1,6 @@
 // Limites em memória por IP e por sessão. Reiniciar o processo zera os contadores (aceito: o segredo
 // atacado tem 60 bits ou mais). Todo mapa tem teto de tamanho e varredura periódica de expirados.
-import { chaveDeLimite } from './enderecos.js';
+import { chaveDeDisjuntor, chaveDeLimite } from './enderecos.js';
 
 const MINUTO = 60_000;
 const HORA = 60 * MINUTO;
@@ -15,6 +15,7 @@ export const LIMITES_PADRAO = {
   bloqueioMaxS: 3600,
   esquecerFalhasMs: 24 * HORA,
   disjuntorFalhasPorHora: 20_000,
+  disjuntorFalhasPorOrigem: 100,
   disjuntorBloqueioMs: 5 * MINUTO,
   tetoMapa: 20_000,
   varreduraMs: MINUTO,
@@ -64,6 +65,9 @@ export function criarLimitador({ relogio = Date.now, limites = {} } = {}) {
   /** @type {Map<string, { falhas: number, ultima: number, ate: number }>} */
   const falhas = new Map();
   const disjuntor = { inicio: 0, n: 0, ate: 0 };
+  // Cada origem (IPv4 ou /48) soma no máximo `disjuntorFalhasPorOrigem` por hora: um assinante que gira /64 não derruba o serviço sozinho.
+  /** @type {Map<string, number>} */
+  const falhasPorOrigem = new Map();
 
   function bloqueioDoIp(/** @type {string} */ ip, /** @type {number} */ agora) {
     const e = falhas.get(ip);
@@ -111,7 +115,12 @@ export function criarLimitador({ relogio = Date.now, limites = {} } = {}) {
       if (agora - disjuntor.inicio >= HORA) {
         disjuntor.inicio = agora;
         disjuntor.n = 0;
+        falhasPorOrigem.clear();
       }
+      const origemDoDisjuntor = chaveDeDisjuntor(origem);
+      const contadas = falhasPorOrigem.get(origemDoDisjuntor) ?? 0;
+      if (contadas >= L.disjuntorFalhasPorOrigem) return;
+      if (falhasPorOrigem.size < L.tetoMapa || contadas > 0) falhasPorOrigem.set(origemDoDisjuntor, contadas + 1);
       disjuntor.n += 1;
       if (disjuntor.n >= L.disjuntorFalhasPorHora) {
         disjuntor.ate = agora + L.disjuntorBloqueioMs;
