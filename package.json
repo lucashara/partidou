@@ -9,8 +9,8 @@
   },
   "scripts": {
     "start": "node server/main.js",
-    "dev": "DEV=1 COOKIE_SECURE=0 node --watch server/main.js",
-    "test": "node --test --test-reporter=spec test/",
+    "dev": "DEV=1 node --watch server/main.js",
+    "test": "node --test --test-reporter=spec test/*.test.js test/cliente/*.test.js",
     "tipos": "tsc -p tsconfig.servidor.json && tsc -p tsconfig.cliente.json",
     "lint": "biome check .",
     "formatar": "biome check --write .",
